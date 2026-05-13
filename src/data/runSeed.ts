@@ -1,4 +1,13 @@
 import type { RunParams, RunRow, TaskResult } from "../types/run";
+import {
+  DEMO_JUDGE_LLM_RESULT_FAIL,
+  DEMO_JUDGE_LLM_RESULT_SUCCESS,
+  SAMPLE_WEB_BROWSER_EXTENSION_DIR,
+  SAMPLE_WEB_BROWSER_PATH,
+  SAMPLE_WEB_BROWSER_USER_DIR,
+  demoGifUrl,
+  demoHistoryJsonUrl,
+} from "./sampleRunExamples";
 
 export const agentVersions = [
   { id: "nav-1.2.0", label: "Navigator 1.2.0" },
@@ -10,9 +19,9 @@ const baseParams = (benchId: string, overrides: Partial<RunParams> = {}): RunPar
   benchId,
   startTime: "2026-05-13T07:12:00Z",
   finishTime: "2026-05-13T09:45:00Z",
-  webBrowserPath: "/configs/chrome-prod.yaml",
-  webBrowserExtensionDir: "/plugins/nav-ext",
-  webBrowserUserDir: "/profiles/bench-user",
+  webBrowserPath: SAMPLE_WEB_BROWSER_PATH,
+  webBrowserExtensionDir: SAMPLE_WEB_BROWSER_EXTENSION_DIR,
+  webBrowserUserDir: SAMPLE_WEB_BROWSER_USER_DIR,
   pipeline: "full_stack",
   maxSteps: 40,
   maxConcurrent: 8,
@@ -141,10 +150,10 @@ export function buildDemoTasks(benchId: string, n = 5): TaskResult[] {
     numbSteps: 14,
     success: i % 7 !== 0,
     finalAnswer: "Товар добавлен в корзину",
-    judgeLlmResult: i % 7 !== 0 ? "pass" : "fail",
+    judgeLlmResult: i % 7 !== 0 ? DEMO_JUDGE_LLM_RESULT_SUCCESS : DEMO_JUDGE_LLM_RESULT_FAIL,
     createdAt: "2026-05-13T07:18:23Z",
-    historyJsonUrl: `s3://bench/history/${benchId}/${i}.json`,
-    gifUrl: `s3://bench/gif/${benchId}/${i}.gif`,
+    historyJsonUrl: demoHistoryJsonUrl(i),
+    gifUrl: demoGifUrl(i),
   });
   return Array.from({ length: n }, (_, j) => base(j + 1));
 }

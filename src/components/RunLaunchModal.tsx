@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "./Modal";
+import {
+  SAMPLE_WEB_BROWSER_EXTENSION_DIR,
+  SAMPLE_WEB_BROWSER_PATH,
+  SAMPLE_WEB_BROWSER_USER_DIR,
+} from "../data/sampleRunExamples";
 import type { BenchmarkData } from "../types/benchmark";
 
 export type RunLaunchForm = {
@@ -31,9 +36,9 @@ const VERSIONS = ["1.2.0", "1.1.4", "0.9.1"];
 const JUDGES = ["judge-llm-v1", "judge-llm-v2", "none"];
 
 const initialForm: RunLaunchForm = {
-  web_browser_path: "/configs/chrome-prod.yaml",
-  web_browser_extension_dir: "/plugins/nav-ext",
-  web_browser_user_dir: "/profiles/bench-user",
+  web_browser_path: SAMPLE_WEB_BROWSER_PATH,
+  web_browser_extension_dir: SAMPLE_WEB_BROWSER_EXTENSION_DIR,
+  web_browser_user_dir: SAMPLE_WEB_BROWSER_USER_DIR,
   pipeline: "full_stack",
   max_steps: 40,
   max_concurrent: 8,

@@ -96,9 +96,9 @@ export default function TaskDetailPage() {
             <dt>final_answer</dt>
             <dd style={{ whiteSpace: "pre-wrap" }}>{t.finalAnswer || "—"}</dd>
           </div>
-          <div>
+          <div style={{ gridColumn: "1 / -1" }}>
             <dt>judge_llm_result</dt>
-            <dd>{t.judgeLlmResult ?? "—"}</dd>
+            <dd style={{ whiteSpace: "pre-wrap", fontSize: "0.9rem" }}>{t.judgeLlmResult ?? "—"}</dd>
           </div>
           <div>
             <dt>created_at</dt>
