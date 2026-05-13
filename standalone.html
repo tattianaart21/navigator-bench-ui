@@ -611,7 +611,6 @@
             .join("");
           return (
             '<h1 class="admin-page-title">Бенчмарки</h1>' +
-            '<p class="admin-page-desc">Один файл <code>standalone.html</code> — без Node/npm. Полный UI в проекте: <code>npm run dev</code>.</p>' +
             '<div class="admin-toolbar">' +
             '<button type="button" class="admin-btn admin-btn--primary" id="btn-run-global">Запуск</button>' +
             '<button type="button" class="admin-btn admin-btn--primary" id="btn-create">Создать</button></div>' +
@@ -738,8 +737,6 @@
             '<h1 class="admin-page-title">' +
             escapeHtml(b.name) +
             "</h1>" +
-            '<p class="admin-page-desc">Standalone: изменения версий не сохраняются между перезагрузками страницы.</p>' +
-            '<div class="admin-banner">Параллельное редактирование на бэкенде даст отдельные версии; здесь — демонстрация UI.</div>' +
             '<div class="admin-card admin-card-pad" style="margin-bottom:1rem"><dl class="admin-meta-grid">' +
             "<div><dt>Текущая версия (latest)</dt><dd>" +
             escapeHtml(lv.label) +
@@ -804,7 +801,7 @@
             .join("");
           return (
             '<div class="admin-breadcrumb"><a data-spa href="#/">Бенчмарки</a> / <strong>Запуски</strong></div>' +
-            '<h1 class="admin-page-title">Запуски</h1><p class="admin-page-desc">Демо-таблица.</p>' +
+            '<h1 class="admin-page-title">Запуски</h1>' +
             '<div class="admin-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr>' +
             "<th>run_id</th><th>Бенч</th><th>pipeline</th><th>Всего</th><th>Успех</th><th>Ошибки</th><th>Старт</th><th>Финиш</th><th>Длит.</th><th>Статус</th>" +
             "</tr></thead><tbody>" +
@@ -821,7 +818,7 @@
         function renderCompare() {
           return (
             '<div class="admin-breadcrumb"><a data-spa href="#/">Бенчмарки</a> / <strong>Сравнение</strong></div>' +
-            '<h1 class="admin-page-title">Сравнение</h1><p class="admin-page-desc">Упрощённый экран в standalone.</p>' +
+            '<h1 class="admin-page-title">Сравнение</h1>' +
             '<div class="admin-card admin-card-pad"><p class="admin-hint" style="margin:0">В полной версии React — выбор двух run и метрики.</p></div>'
           );
         }

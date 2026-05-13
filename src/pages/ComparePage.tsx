@@ -1,25 +1,34 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { mockRuns } from "../data/mock";
+import { useRuns } from "../context/RunsContext";
 import { durationBetween, formatIso } from "../lib/format";
 
 export default function ComparePage() {
-  const [leftId, setLeftId] = useState(mockRuns[2]?.runId ?? "");
-  const [rightId, setRightId] = useState(mockRuns[0]?.runId ?? "");
+  const { runs } = useRuns();
+  const [leftId, setLeftId] = useState(runs[2]?.benchId ?? "");
+  const [rightId, setRightId] = useState(runs[0]?.benchId ?? "");
 
-  const left = mockRuns.find((r) => r.runId === leftId);
-  const right = mockRuns.find((r) => r.runId === rightId);
+  const left = runs.find((r) => r.benchId === leftId);
+  const right = runs.find((r) => r.benchId === rightId);
 
   const metrics = useMemo(() => {
     if (!left || !right) return null;
     const lr =
-      left.totalTasks > 0 ? (left.totalSuccess / left.totalTasks) * 100 : 0;
+      left.totalTasks > 0 && left.totalSuccess != null
+        ? (left.totalSuccess / left.totalTasks) * 100
+        : 0;
     const rr =
-      right.totalTasks > 0 ? (right.totalSuccess / right.totalTasks) * 100 : 0;
+      right.totalTasks > 0 && right.totalSuccess != null
+        ? (right.totalSuccess / right.totalTasks) * 100
+        : 0;
     const li =
-      left.totalTasks > 0 ? (left.totalFailed / left.totalTasks) * 100 : 0;
+      left.totalTasks > 0 && left.totalFailed != null
+        ? (left.totalFailed / left.totalTasks) * 100
+        : 0;
     const ri =
-      right.totalTasks > 0 ? (right.totalFailed / right.totalTasks) * 100 : 0;
+      right.totalTasks > 0 && right.totalFailed != null
+        ? (right.totalFailed / right.totalTasks) * 100
+        : 0;
     return {
       durationLeft: durationBetween(left.startTime, left.finishTime),
       durationRight: durationBetween(right.startTime, right.finishTime),
@@ -38,9 +47,6 @@ export default function ComparePage() {
         <strong>Сравнение</strong>
       </div>
       <h1 className="admin-page-title">Сравнение запусков</h1>
-      <p className="admin-page-desc">
-        Выбор двух запусков и агрегированные метрики (без diff по таскам в MVP).
-      </p>
 
       <div className="admin-card admin-card-pad" style={{ marginBottom: "1rem" }}>
         <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Выбор запусков</h2>
@@ -53,9 +59,9 @@ export default function ComparePage() {
               value={leftId}
               onChange={(e) => setLeftId(e.target.value)}
             >
-              {mockRuns.map((r) => (
-                <option key={r.runId} value={r.runId}>
-                  {r.runId} · {r.benchName} ({r.benchVersion})
+              {runs.map((r) => (
+                <option key={r.benchId} value={r.benchId}>
+                  {r.benchId} · {r.benchName} ({r.benchVersion})
                 </option>
               ))}
             </select>
@@ -68,23 +74,20 @@ export default function ComparePage() {
               value={rightId}
               onChange={(e) => setRightId(e.target.value)}
             >
-              {mockRuns.map((r) => (
-                <option key={`b-${r.runId}`} value={r.runId}>
-                  {r.runId} · {r.benchName} ({r.benchVersion})
+              {runs.map((r) => (
+                <option key={`b-${r.benchId}`} value={r.benchId}>
+                  {r.benchId} · {r.benchName} ({r.benchVersion})
                 </option>
               ))}
             </select>
           </div>
         </div>
-        <p className="admin-hint" style={{ margin: 0 }}>
-          В продукте можно предлагать пару «последний vs предыдущий» при совпадении конфигурации.
-        </p>
       </div>
 
       {left && right && metrics && (
         <div className="admin-compare-grid">
           <div className="admin-card admin-card-pad">
-            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{left.runId}</h2>
+            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{left.benchId}</h2>
             <dl className="admin-meta-grid">
               <div>
                 <dt>Бенч · версия</dt>
@@ -117,7 +120,7 @@ export default function ComparePage() {
             </dl>
           </div>
           <div className="admin-card admin-card-pad">
-            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{right.runId}</h2>
+            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{right.benchId}</h2>
             <dl className="admin-meta-grid">
               <div>
                 <dt>Бенч · версия</dt>

@@ -2,6 +2,7 @@ import Modal from "./Modal";
 
 type Props = {
   open: boolean;
+  title?: string;
   message: string;
   confirmLabel?: string;
   onConfirm: () => void;
@@ -10,6 +11,7 @@ type Props = {
 
 export default function ConfirmNewVersionModal({
   open,
+  title = "Новая версия бенчмарка",
   message,
   confirmLabel = "Продолжить",
   onConfirm,
@@ -17,7 +19,7 @@ export default function ConfirmNewVersionModal({
 }: Props) {
   return (
     <Modal
-      title="Новая версия бенчмарка"
+      title={title}
       open={open}
       onClose={onCancel}
       footer={

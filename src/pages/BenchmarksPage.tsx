@@ -1,12 +1,14 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useBenchmarks } from "../context/BenchmarkContext";
+import { useRuns } from "../context/RunsContext";
 import Modal from "../components/Modal";
-import RunLaunchModal from "../components/RunLaunchModal";
+import RunLaunchModal, { type RunLaunchSubmitPayload } from "../components/RunLaunchModal";
 import { formatIso } from "../lib/format";
 
 export default function BenchmarksPage() {
   const { benchmarks, createBenchmark } = useBenchmarks();
+  const { addRun } = useRuns();
   const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -37,12 +39,29 @@ export default function BenchmarksPage() {
     navigate(`/bench/${id}`);
   };
 
+  const handleLaunch = useCallback(
+    (payload: RunLaunchSubmitPayload) => {
+      const b = benchmarks.find((x) => x.id === payload.benchmarkId);
+      if (!b) return;
+      const ver = b.versions[b.versions.length - 1];
+      const active = ver.tasks.filter((t) => !t.archived);
+      const sel = payload.selectedTaskInternalIds;
+      const list =
+        sel && sel.length ? active.filter((t) => sel.includes(t.internalId)) : active;
+      const benchId = addRun({
+        ...payload,
+        benchmarkName: b.name,
+        benchmarkVersion: ver.label,
+        totalTasks: Math.max(1, list.length),
+      });
+      navigate(`/runs/${encodeURIComponent(benchId)}`);
+    },
+    [addRun, benchmarks, navigate]
+  );
+
   return (
     <>
       <h1 className="admin-page-title">Бенчмарки</h1>
-      <p className="admin-page-desc">
-        Список бенчмарков с актуальной версией. Прототип UI — данные локальные.
-      </p>
 
       <div className="admin-toolbar">
         <button type="button" className="admin-btn admin-btn--primary" onClick={() => setRunOpen(true)}>
@@ -120,8 +139,8 @@ export default function BenchmarksPage() {
           />
         </div>
         <p className="admin-hint" style={{ marginBottom: 0 }}>
-          После создания откроется карточка: добавьте таски кнопкой «Добавить задачу» — версия{" "}
-          <strong>v1</strong>.
+          После создания откроется карточка: добавьте таски кнопкой «Добавить задачу», затем «Сохранить бенчмарк» —
+          версия <strong>v1</strong>.
         </p>
       </Modal>
 
@@ -133,13 +152,11 @@ export default function BenchmarksPage() {
         }}
         benchmarks={benchmarks}
         defaultBenchmarkId={defaultBench}
-        onSubmit={() => {
-          /* мок */
-        }}
+        onSubmit={handleLaunch}
       />
 
       <p className="admin-hint" style={{ marginTop: "1.25rem" }}>
-        Связанные разделы: <Link to="/runs">запуски</Link>, <Link to="/compare">сравнение</Link>.
+        <Link to="/runs">Запуски</Link> · <Link to="/compare">Сравнение</Link>
       </p>
     </>
   );

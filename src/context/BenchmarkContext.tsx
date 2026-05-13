@@ -8,6 +8,7 @@ import {
 } from "react";
 import { buildInitialBenchmarks, nextTaskIdForWeb } from "../data/initialBenchmarks";
 import type { BenchTask, BenchmarkData } from "../types/benchmark";
+import { tasksEqual } from "../lib/tasksEqual";
 
 function cloneTask(t: BenchTask): BenchTask {
   return { ...t };
@@ -45,6 +46,12 @@ type Ctx = {
     internalId: string,
     archived: boolean,
     mode: "newVersion"
+  ) => void;
+  /** Атомарно записать список тасок в последнюю версию или создать новую. */
+  commitBenchTasks: (
+    benchId: string,
+    tasks: BenchTask[],
+    mode: "inPlace" | "newVersion"
   ) => void;
 };
 
@@ -179,6 +186,38 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const commitBenchTasks = useCallback(
+    (benchId: string, tasks: BenchTask[], mode: "inPlace" | "newVersion") => {
+      setBenchmarks((prev) =>
+        prev.map((b) => {
+          if (b.id !== benchId) return b;
+          const last = latestVersion(b);
+          if (tasksEqual(tasks, last.tasks)) return b;
+
+          if (mode === "inPlace") {
+            const versions = b.versions.slice(0, -1);
+            const updatedLast = {
+              ...last,
+              tasks: cloneVersionTasks(tasks),
+            };
+            return { ...b, versions: [...versions, updatedLast] };
+          }
+
+          const nextLabel = `v${b.versions.length + 1}`;
+          const newVer: BenchmarkData["versions"][0] = {
+            id: `${benchId}v${b.versions.length + 1}-${Date.now()}`,
+            label: nextLabel,
+            createdAt: new Date().toISOString(),
+            tasks: cloneVersionTasks(tasks),
+            parentVersionId: last.id,
+          };
+          return { ...b, versions: [...b.versions, newVer] };
+        })
+      );
+    },
+    []
+  );
+
   const value = useMemo(
     () => ({
       benchmarks,
@@ -187,8 +226,9 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
       addTask,
       updateTask,
       setTaskArchived,
+      commitBenchTasks,
     }),
-    [benchmarks, getBenchmark, createBenchmark, addTask, updateTask, setTaskArchived]
+    [benchmarks, getBenchmark, createBenchmark, addTask, updateTask, setTaskArchived, commitBenchTasks]
   );
 
   return (

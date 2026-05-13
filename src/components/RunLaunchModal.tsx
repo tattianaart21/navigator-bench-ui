@@ -53,6 +53,11 @@ const initialForm: RunLaunchForm = {
   screenshots_without_markup: false,
 };
 
+export type RunLaunchSubmitPayload = RunLaunchForm & {
+  benchmarkId: string;
+  selectedTaskInternalIds: string[] | null;
+};
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -62,7 +67,7 @@ type Props = {
   /** если передан — в модалке не показываем выбор бенча */
   lockedBenchmarkId?: string | null;
   selectedTaskIds?: string[] | null;
-  onSubmit: (payload: RunLaunchForm & { benchmarkId: string; selectedTaskInternalIds: string[] | null }) => void;
+  onSubmit: (payload: RunLaunchSubmitPayload) => void;
 };
 
 export default function RunLaunchModal({

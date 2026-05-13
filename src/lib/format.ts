@@ -10,11 +10,21 @@ export function formatIso(iso: string | null): string {
   }
 }
 
-export function durationBetween(start: string, end: string | null): string {
-  if (!end) return "—";
+export function durationBetween(start: string | null, end: string | null): string {
+  if (!start || !end) return "—";
   const a = new Date(start).getTime();
   const b = new Date(end).getTime();
   const sec = Math.round((b - a) / 1000);
+  if (sec < 60) return `${sec} с`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m} мин ${s} с`;
+}
+
+/** Длительность от старта до текущего момента (для запуска «В работе»). */
+export function durationSince(start: string | null): string {
+  if (!start) return "—";
+  const sec = Math.max(0, Math.round((Date.now() - new Date(start).getTime()) / 1000));
   if (sec < 60) return `${sec} с`;
   const m = Math.floor(sec / 60);
   const s = sec % 60;

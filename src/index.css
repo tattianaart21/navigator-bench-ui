@@ -618,3 +618,81 @@ button {
   background: rgba(220, 38, 38, 0.12);
   color: #b91c1c;
 }
+
+.admin-table--tasks .admin-task-ques-row td {
+  background: var(--admin-row-alt);
+  border-top: none;
+  padding-top: 0.35rem;
+  padding-bottom: 0.65rem;
+}
+
+.admin-task-ques-block {
+  display: block;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--admin-text);
+}
+
+.admin-task-ques-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-muted);
+  margin-bottom: 0.25rem;
+}
+
+.admin-link-btn {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: var(--admin-purple);
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.admin-link-btn:hover {
+  color: var(--admin-purple-hover);
+}
+
+.admin-link-btn--block {
+  display: block;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+}
+
+.admin-link-btn--block:hover {
+  text-decoration: underline;
+}
+
+.admin-trace-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  max-width: 220px;
+}
+
+.admin-trace-card-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--admin-muted);
+}
+
+.admin-trace-card-sid {
+  font-size: 0.72rem;
+  word-break: break-all;
+}

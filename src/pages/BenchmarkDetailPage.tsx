@@ -1,23 +1,27 @@
-import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import {
-  needsVersionBumpForAdd,
-  useBenchmarks,
-} from "../context/BenchmarkContext";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useBenchmarks } from "../context/BenchmarkContext";
+import { useRuns } from "../context/RunsContext";
 import Modal from "../components/Modal";
 import Switch from "../components/Switch";
 import ConfirmNewVersionModal from "../components/ConfirmNewVersionModal";
-import RunLaunchModal from "../components/RunLaunchModal";
-import { sortTasksForDisplay } from "../data/initialBenchmarks";
+import RunLaunchModal, { type RunLaunchSubmitPayload } from "../components/RunLaunchModal";
+import { sortTasksForDisplay, nextTaskIdForWeb } from "../data/initialBenchmarks";
 import { formatIso } from "../lib/format";
+import { tasksEqual } from "../lib/tasksEqual";
 import type { BenchTask, BenchVersionData } from "../types/benchmark";
 
 const PAGE_SIZE = 20;
-const VERSION_MSG = "Будет создана новая версия бенчмарка. Продолжить?";
+
+function cloneTasks(tasks: BenchTask[]): BenchTask[] {
+  return tasks.map((t) => ({ ...t }));
+}
 
 export default function BenchmarkDetailPage() {
   const { id } = useParams();
-  const { getBenchmark, addTask, updateTask, setTaskArchived, benchmarks } = useBenchmarks();
+  const navigate = useNavigate();
+  const { getBenchmark, benchmarks, commitBenchTasks } = useBenchmarks();
+  const { addRun } = useRuns();
   const bench = id ? getBenchmark(id) : undefined;
 
   const [viewVersionId, setViewVersionId] = useState<string | null>(null);
@@ -26,8 +30,8 @@ export default function BenchmarkDetailPage() {
 
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<null | (() => void)>(null);
+  const [benchSaveOpen, setBenchSaveOpen] = useState(false);
+  const [benchSaveMode, setBenchSaveMode] = useState<"inPlace" | "newVersion">("inPlace");
 
   const [formWeb, setFormWeb] = useState("");
   const [formQues, setFormQues] = useState("");
@@ -38,6 +42,8 @@ export default function BenchmarkDetailPage() {
   const [runOpen, setRunOpen] = useState(false);
   const [runScope, setRunScope] = useState<"all" | "selected">("all");
 
+  const [workingTasks, setWorkingTasks] = useState<BenchTask[]>([]);
+
   const latest = bench ? bench.versions[bench.versions.length - 1] : undefined;
   const viewing: BenchVersionData | undefined = useMemo(() => {
     if (!bench || !latest) return undefined;
@@ -47,14 +53,50 @@ export default function BenchmarkDetailPage() {
 
   const readOnly = Boolean(bench && viewing && latest && viewing.id !== latest.id);
 
-  const sortedFiltered = useMemo(() => {
-    if (!viewing) return [];
-    return sortTasksForDisplay(viewing.tasks).filter((t) => includeArchived || !t.archived);
-  }, [viewing, includeArchived]);
+  useEffect(() => {
+    if (!latest) return;
+    setWorkingTasks(cloneTasks(latest.tasks));
+  }, [bench?.id, latest?.id]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedFiltered.length / PAGE_SIZE));
+  const displayTasks: BenchTask[] = useMemo(() => {
+    if (readOnly) {
+      if (!viewing) return [];
+      return sortTasksForDisplay(viewing.tasks).filter((t) => includeArchived || !t.archived);
+    }
+    return sortTasksForDisplay(workingTasks).filter((t) => includeArchived || !t.archived);
+  }, [readOnly, viewing, workingTasks, includeArchived]);
+
+  const dirty = useMemo(() => {
+    if (!latest || readOnly) return false;
+    return !tasksEqual(workingTasks, latest.tasks);
+  }, [latest, readOnly, workingTasks]);
+
+  const totalPages = Math.max(1, Math.ceil(displayTasks.length / PAGE_SIZE));
   const pageClamped = Math.min(page, totalPages);
-  const slice = sortedFiltered.slice((pageClamped - 1) * PAGE_SIZE, pageClamped * PAGE_SIZE);
+  const slice = displayTasks.slice((pageClamped - 1) * PAGE_SIZE, pageClamped * PAGE_SIZE);
+
+  const colCount = !readOnly ? 6 : 4;
+
+  const launchHandler = useCallback(
+    (payload: RunLaunchSubmitPayload) => {
+      const b = benchmarks.find((x) => x.id === payload.benchmarkId);
+      if (!b || !id) return;
+      const ver = b.versions[b.versions.length - 1];
+      const sourceTasks = payload.benchmarkId === id ? workingTasks : ver.tasks;
+      const active = sourceTasks.filter((t) => !t.archived);
+      const sel = payload.selectedTaskInternalIds;
+      const list =
+        sel && sel.length ? active.filter((t) => sel.includes(t.internalId)) : active;
+      const benchId = addRun({
+        ...payload,
+        benchmarkName: b.name,
+        benchmarkVersion: ver.label,
+        totalTasks: Math.max(1, list.length),
+      });
+      navigate(`/runs/${encodeURIComponent(benchId)}`);
+    },
+    [addRun, benchmarks, id, navigate, workingTasks]
+  );
 
   if (!bench || !latest || !viewing) {
     return (
@@ -79,63 +121,53 @@ export default function BenchmarkDetailPage() {
     setEditOpen(true);
   };
 
-  const requestConfirm = (fn: () => void) => {
-    setConfirmAction(() => fn);
-    setConfirmOpen(true);
-  };
-
   const runAddSave = () => {
-    if (!id) return;
     const fields = {
       web_name: formWeb.trim(),
       task_ques: formQues.trim(),
       task_web: formUrl.trim(),
     };
     if (!fields.web_name || !fields.task_ques) return;
-    const bump = needsVersionBumpForAdd(bench);
-    if (bump) {
-      requestConfirm(() => {
-        addTask(id, fields, "newVersion");
-        setAddOpen(false);
-        setPage(1);
-        setViewVersionId(null);
-      });
-    } else {
-      addTask(id, fields, "inPlace");
-      setAddOpen(false);
-      setPage(1);
-    }
+    const task_id = nextTaskIdForWeb(workingTasks, fields.web_name);
+    const newTask: BenchTask = {
+      internalId: `t-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      web_name: fields.web_name,
+      task_id,
+      task_ques: fields.task_ques,
+      task_web: fields.task_web,
+      archived: false,
+    };
+    setWorkingTasks((prev) => [...prev, newTask]);
+    setAddOpen(false);
+    setPage(1);
   };
 
   const runEditSave = () => {
-    if (!id || !editInternalId) return;
+    if (!editInternalId) return;
     const fields = {
       web_name: formWeb.trim(),
       task_ques: formQues.trim(),
       task_web: formUrl.trim(),
     };
     if (!fields.web_name || !fields.task_ques) return;
-    requestConfirm(() => {
-      updateTask(id, editInternalId, fields, "newVersion");
-      setEditOpen(false);
-      setViewVersionId(null);
-    });
+    setWorkingTasks((prev) =>
+      prev.map((t) => (t.internalId === editInternalId ? { ...t, ...fields } : t))
+    );
+    setEditOpen(false);
   };
 
   const archive = (t: BenchTask) => {
-    if (!id || readOnly) return;
-    requestConfirm(() => {
-      setTaskArchived(id, t.internalId, true, "newVersion");
-      setViewVersionId(null);
-    });
+    if (readOnly) return;
+    setWorkingTasks((prev) =>
+      prev.map((x) => (x.internalId === t.internalId ? { ...x, archived: true } : x))
+    );
   };
 
   const restore = (t: BenchTask) => {
-    if (!id || readOnly) return;
-    requestConfirm(() => {
-      setTaskArchived(id, t.internalId, false, "newVersion");
-      setViewVersionId(null);
-    });
+    if (readOnly) return;
+    setWorkingTasks((prev) =>
+      prev.map((x) => (x.internalId === t.internalId ? { ...x, archived: false } : x))
+    );
   };
 
   const toggleSelect = (internalId: string) => {
@@ -147,7 +179,20 @@ export default function BenchmarkDetailPage() {
     });
   };
 
-  const versionChain = bench.versions.map((v, idx) => (
+  const requestBenchSave = () => {
+    if (!dirty || !id) return;
+    const bump = bench!.versions.length > 1;
+    setBenchSaveMode(bump ? "newVersion" : "inPlace");
+    setBenchSaveOpen(true);
+  };
+
+  const applyBenchSave = () => {
+    if (!id) return;
+    commitBenchTasks(id, workingTasks, benchSaveMode);
+    setBenchSaveOpen(false);
+  };
+
+  const versionChain = bench!.versions.map((v, idx) => (
     <span key={v.id} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
       {idx > 0 ? <span className="admin-version-arrow">→</span> : null}
       <button
@@ -165,25 +210,22 @@ export default function BenchmarkDetailPage() {
     </span>
   ));
 
+  const benchSaveTitle =
+    benchSaveMode === "newVersion" ? "Новая версия бенчмарка" : "Сохранение бенчмарка";
+  const benchSaveMessage =
+    benchSaveMode === "newVersion"
+      ? "Внесённые изменения будут сохранены как новая версия бенчмарка. Продолжить?"
+      : "Сохранить все изменения тасок в текущей версии?";
+
   return (
     <>
       <div className="admin-breadcrumb">
         <Link to="/">Бенчмарки</Link>
         {" / "}
-        <strong>{bench.name}</strong>
+        <strong>{bench!.name}</strong>
       </div>
 
-      <h1 className="admin-page-title">{bench.name}</h1>
-      <p className="admin-page-desc">
-        Карточка бенчмарка, версии и таски. Параллельное редактирование: у каждого сохранения на
-        бэкенде будет своя новая версия без перезаписи чужих изменений.
-      </p>
-
-      <div className="admin-banner">
-        Несколько пользователей могут работать одновременно: каждое подтверждённое действие,
-        требующее версии, создаёт <strong>новую</strong> запись версии (ветвление обрабатывается на
-        бэкенде; в прототипе версии добавляются последовательно в этой вкладке).
-      </div>
+      <h1 className="admin-page-title">{bench!.name}</h1>
 
       <div className="admin-card admin-card-pad" style={{ marginBottom: "1rem" }}>
         <dl className="admin-meta-grid">
@@ -204,7 +246,9 @@ export default function BenchmarkDetailPage() {
 
       <div className="admin-version-chain">{versionChain}</div>
       {readOnly ? (
-        <p className="admin-hint">Просмотр версии <strong>{viewing.label}</strong> (только чтение).</p>
+        <p className="admin-hint">
+          Просмотр версии <strong>{viewing.label}</strong> (только чтение).
+        </p>
       ) : null}
 
       <div className="admin-toolbar admin-toolbar--split">
@@ -220,9 +264,17 @@ export default function BenchmarkDetailPage() {
             disabled={readOnly}
           />
         </div>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
           {!readOnly ? (
             <>
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary"
+                disabled={!dirty}
+                onClick={requestBenchSave}
+              >
+                Сохранить бенчмарк
+              </button>
               <button type="button" className="admin-btn admin-btn--primary" onClick={openAdd}>
                 Добавить задачу
               </button>
@@ -254,70 +306,76 @@ export default function BenchmarkDetailPage() {
 
       <div className="admin-card">
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-table--tasks">
             <thead>
               <tr>
                 {!readOnly ? <th style={{ width: 40 }} /> : null}
                 <th>web_name</th>
                 <th>task_id</th>
-                <th>task_ques</th>
                 <th>task_web</th>
                 {!readOnly ? <th>Действия</th> : null}
               </tr>
             </thead>
             <tbody>
               {slice.map((t) => (
-                <tr key={t.internalId}>
-                  {!readOnly ? (
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(t.internalId)}
-                        onChange={() => toggleSelect(t.internalId)}
-                        disabled={t.archived}
-                        aria-label="Выбрать для запуска"
-                      />
+                <Fragment key={t.internalId}>
+                  <tr>
+                    {!readOnly ? (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(t.internalId)}
+                          onChange={() => toggleSelect(t.internalId)}
+                          disabled={t.archived}
+                          aria-label="Выбрать для запуска"
+                        />
+                      </td>
+                    ) : null}
+                    <td>{t.web_name}</td>
+                    <td className="cell-mono" title={t.task_id}>
+                      {t.task_id}
                     </td>
-                  ) : null}
-                  <td>{t.web_name}</td>
-                  <td className="cell-mono" title={t.task_id}>
-                    {t.task_id}
-                  </td>
-                  <td className="cell-wrap" title={t.task_ques}>
-                    {t.task_ques}
-                  </td>
-                  <td className="cell-mono" title={t.task_web || "—"}>
-                    {t.task_web || "—"}
-                  </td>
-                  {!readOnly ? (
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      <button
-                        type="button"
-                        className="admin-btn admin-btn--sm"
-                        onClick={() => openEdit(t)}
-                      >
-                        Изменить
-                      </button>{" "}
-                      {!t.archived ? (
-                        <button
-                          type="button"
-                          className="admin-btn admin-btn--sm admin-btn--danger"
-                          onClick={() => archive(t)}
-                        >
-                          В архив
-                        </button>
-                      ) : (
+                    <td className="cell-mono" title={t.task_web || "—"}>
+                      {t.task_web || "—"}
+                    </td>
+                    {!readOnly ? (
+                      <td style={{ whiteSpace: "nowrap" }}>
                         <button
                           type="button"
                           className="admin-btn admin-btn--sm"
-                          onClick={() => restore(t)}
+                          onClick={() => openEdit(t)}
                         >
-                          Восстановить
-                        </button>
-                      )}
+                          Изменить
+                        </button>{" "}
+                        {!t.archived ? (
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn--sm admin-btn--danger"
+                            onClick={() => archive(t)}
+                          >
+                            В архив
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn--sm"
+                            onClick={() => restore(t)}
+                          >
+                            Восстановить
+                          </button>
+                        )}
+                      </td>
+                    ) : null}
+                  </tr>
+                  <tr className="admin-task-ques-row">
+                    <td colSpan={colCount}>
+                      <div className="admin-task-ques-block">
+                        <span className="admin-task-ques-label">task_ques</span>
+                        {t.task_ques}
+                      </div>
                     </td>
-                  ) : null}
-                </tr>
+                  </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -352,8 +410,8 @@ export default function BenchmarkDetailPage() {
         }
       >
         <p className="admin-hint">
-          Поле <strong>task_id</strong> формируется автоматически по <code>web_name</code> и не
-          показывается.
+          Поле <strong>task_id</strong> формируется автоматически по <code>web_name</code>. Чтобы
+          зафиксировать изменения в бенчмарке для других пользователей, нажмите «Сохранить бенчмарк».
         </p>
         <div className="admin-field">
           <label htmlFor="add-web">web_name</label>
@@ -401,6 +459,9 @@ export default function BenchmarkDetailPage() {
           </>
         }
       >
+        <p className="admin-hint" style={{ marginTop: 0 }}>
+          Изменения попадут в черновик карточки. Итоговая запись в бенчмарк — кнопка «Сохранить бенчмарк».
+        </p>
         <div className="admin-field">
           <label htmlFor="edit-web">web_name</label>
           <input
@@ -431,30 +492,24 @@ export default function BenchmarkDetailPage() {
       </Modal>
 
       <ConfirmNewVersionModal
-        open={confirmOpen}
-        message={VERSION_MSG}
-        onCancel={() => {
-          setConfirmOpen(false);
-          setConfirmAction(null);
-        }}
-        onConfirm={() => {
-          confirmAction?.();
-          setConfirmOpen(false);
-          setConfirmAction(null);
-        }}
+        open={benchSaveOpen}
+        title={benchSaveTitle}
+        message={benchSaveMessage}
+        onCancel={() => setBenchSaveOpen(false)}
+        onConfirm={applyBenchSave}
       />
 
       <RunLaunchModal
         open={runOpen}
         onClose={() => setRunOpen(false)}
         benchmarks={benchmarks}
-        defaultBenchmarkId={bench.id}
-        lockedBenchmarkId={bench.id}
+        defaultBenchmarkId={bench!.id}
+        lockedBenchmarkId={bench!.id}
         selectedTaskIds={
           runScope === "selected" && selected.size ? Array.from(selected) : null
         }
         title={runScope === "selected" ? "Запуск выбранных тасок" : "Запуск бенчмарка"}
-        onSubmit={() => {}}
+        onSubmit={launchHandler}
       />
     </>
   );
