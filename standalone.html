@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Бенчмарки — standalone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --admin-bg: #f0f1f6;
+        --admin-card: #fff;
+        --admin-purple: #2d1b4e;
+        --admin-border: #e2e4ec;
+        --admin-text: #1a1d26;
+        --admin-muted: #6b7280;
+        --admin-row-alt: #f7f8fb;
+        --admin-success: #16a34a;
+        --admin-radius-lg: 18px;
+        --admin-shadow: 0 8px 28px rgba(45, 27, 78, 0.08);
+        --font: "IBM Plex Sans", system-ui, sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family: var(--font);
+        font-size: 15px;
+        color: var(--admin-text);
+        background: var(--admin-bg);
+      }
+      a {
+        color: var(--admin-purple);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .admin-root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .admin-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 0.75rem 2rem 0;
+      }
+      .admin-tabs {
+        display: flex;
+        gap: 1.5rem;
+        align-items: flex-end;
+      }
+      .admin-tab {
+        padding: 0.5rem 0 0.65rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--admin-muted);
+        border-bottom: 3px solid transparent;
+      }
+      .admin-tab:hover {
+        color: var(--admin-purple);
+      }
+      .admin-tab--active {
+        color: var(--admin-purple);
+        border-bottom-color: var(--admin-purple);
+      }
+      .admin-tab--disabled {
+        color: #b4b8c5;
+      }
+      .admin-search {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: var(--admin-card);
+        border: 1px solid var(--admin-border);
+        border-radius: 999px;
+        padding: 0.35rem 0.85rem;
+        min-width: 200px;
+      }
+      .admin-search input {
+        border: none;
+        outline: none;
+        flex: 1;
+        font-size: 0.875rem;
+        background: transparent;
+      }
+      .admin-subnav {
+        padding: 0.35rem 2rem 0.75rem;
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+      }
+      .admin-subnav a {
+        color: var(--admin-muted);
+        font-weight: 500;
+      }
+      .admin-page {
+        flex: 1;
+        padding: 0.5rem 2rem 2rem;
+        max-width: 1320px;
+        margin: 0 auto;
+        width: 100%;
+      }
+      .admin-breadcrumb {
+        font-size: 0.85rem;
+        color: var(--admin-muted);
+        margin-bottom: 1rem;
+      }
+      .admin-page-title {
+        margin: 0 0 0.35rem;
+        font-size: 1.35rem;
+        font-weight: 600;
+      }
+      .admin-page-desc {
+        margin: 0 0 1.25rem;
+        color: var(--admin-muted);
+        font-size: 0.9rem;
+      }
+      .admin-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        margin-bottom: 1rem;
+      }
+      .admin-toolbar--split {
+        justify-content: space-between;
+        align-items: center;
+      }
+      .admin-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        border: 1px solid var(--admin-border);
+        background: var(--admin-card);
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .admin-btn--primary {
+        background: var(--admin-purple);
+        border-color: var(--admin-purple);
+        color: #fff;
+      }
+      .admin-btn--sm {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.8rem;
+        border-radius: 8px;
+      }
+      .admin-btn--danger {
+        color: #b91c1c;
+        border-color: #fecaca;
+        background: #fff5f5;
+      }
+      .admin-card {
+        background: var(--admin-card);
+        border-radius: var(--admin-radius-lg);
+        box-shadow: var(--admin-shadow);
+        border: 1px solid var(--admin-border);
+        overflow: hidden;
+      }
+      .admin-card-pad {
+        padding: 1.25rem 1.5rem;
+      }
+      .admin-table-wrap {
+        overflow-x: auto;
+      }
+      .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+      .admin-table thead th {
+        background: var(--admin-purple);
+        color: #fff;
+        text-align: left;
+        padding: 0.85rem 1rem;
+        font-weight: 600;
+        font-size: 0.72rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .admin-table tbody tr:nth-child(even) td {
+        background: var(--admin-row-alt);
+      }
+      .admin-table tbody tr:nth-child(odd) td {
+        background: #fff;
+      }
+      .admin-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--admin-border);
+        vertical-align: middle;
+      }
+      .admin-table tr.clickable {
+        cursor: pointer;
+      }
+      .admin-table tr.clickable:hover td {
+        background: #f3e8ff !important;
+      }
+      .cell-mono {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cell-wrap {
+        max-width: 360px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .admin-pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 1rem;
+        border-top: 1px solid var(--admin-border);
+      }
+      .admin-page-btn {
+        min-width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 8px;
+        border: 1px solid var(--admin-border);
+        background: #fff;
+        font-size: 0.85rem;
+      }
+      .admin-page-btn--active {
+        background: var(--admin-row-alt);
+        font-weight: 600;
+      }
+      .admin-pill {
+        display: inline-block;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .admin-pill--ok {
+        background: rgba(22, 163, 74, 0.12);
+        color: var(--admin-success);
+      }
+      .admin-pill--warn {
+        background: rgba(234, 179, 8, 0.15);
+        color: #a16207;
+      }
+      .admin-pill--bad {
+        background: rgba(220, 38, 38, 0.12);
+        color: #b91c1c;
+      }
+      .admin-version-chain {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+      }
+      .admin-version-pill {
+        display: inline-flex;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--admin-border);
+        background: #fff;
+        color: var(--admin-muted);
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .admin-version-pill--active {
+        background: var(--admin-purple);
+        color: #fff;
+        border-color: var(--admin-purple);
+      }
+      .admin-banner {
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        background: #fef9c3;
+        border: 1px solid #fde047;
+        color: #713f12;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+      }
+      .admin-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem 1.5rem;
+      }
+      .admin-meta-grid dt {
+        margin: 0;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--admin-muted);
+      }
+      .admin-meta-grid dd {
+        margin: 0.2rem 0 0;
+        font-weight: 500;
+      }
+      .admin-field {
+        margin-bottom: 0.85rem;
+      }
+      .admin-field label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--admin-muted);
+        margin-bottom: 0.3rem;
+      }
+      .admin-input,
+      .admin-field textarea {
+        width: 100%;
+        padding: 0.5rem 0.65rem;
+        border-radius: 10px;
+        border: 1px solid var(--admin-border);
+        font-size: 0.875rem;
+        font-family: inherit;
+      }
+      .admin-field textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      .admin-hint {
+        font-size: 0.85rem;
+        color: var(--admin-muted);
+        margin: 0 0 0.75rem;
+      }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(26, 29, 38, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        z-index: 100;
+      }
+      .admin-modal {
+        background: var(--admin-card);
+        border-radius: var(--admin-radius-lg);
+        max-width: 480px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: auto;
+        box-shadow: var(--admin-shadow);
+      }
+      .admin-modal--wide {
+        max-width: 880px;
+      }
+      .admin-modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--admin-border);
+      }
+      .admin-modal-head h2 {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+      .admin-modal-close {
+        border: none;
+        background: none;
+        font-size: 1.5rem;
+        color: var(--admin-muted);
+        cursor: pointer;
+      }
+      .admin-modal-body {
+        padding: 1.25rem;
+      }
+      .admin-modal-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 1rem 1.25rem;
+        border-top: 1px solid var(--admin-border);
+        background: #fafafa;
+      }
+      .switch-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+      }
+      .switch-row input {
+        width: 18px;
+        height: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-root">
+      <header class="admin-top">
+        <nav class="admin-tabs" aria-label="Разделы">
+          <span class="admin-tab admin-tab--disabled">Блэклист</span>
+          <span class="admin-tab admin-tab--disabled">Промпты</span>
+          <span class="admin-tab admin-tab--disabled">Трейсы</span>
+          <a class="admin-tab" data-spa href="#/">Бенчмарки</a>
+        </nav>
+        <div class="admin-search">
+          <span style="color: var(--admin-muted)">⌕</span>
+          <input type="search" placeholder="Искать..." readonly />
+        </div>
+      </header>
+      <nav class="admin-subnav">
+        <a data-spa href="#/">Бенчмарки</a>
+        <a data-spa href="#/runs">Запуски</a>
+        <a data-spa href="#/compare">Сравнение</a>
+      </nav>
+      <main class="admin-page" id="app"></main>
+    </div>
+
+    <script>
+      (function () {
+        var PAGE_SIZE = 20;
+
+        function makeTasks(prefix, count) {
+          var groups = ["Amazon", "Amazon", "Ebay", "Ozon", "Shop", "Amazon"];
+          var tasks = [];
+          var perGroup = {};
+          for (var i = 0; i < count; i++) {
+            var web = groups[i % groups.length];
+            var n = perGroup[web] == null ? 0 : perGroup[web];
+            perGroup[web] = n + 1;
+            var task_id = web + "--" + n;
+            tasks.push({
+              internalId: prefix + "-t-" + i,
+              web_name: web,
+              task_id: task_id,
+              task_ques:
+                "Сценарий " +
+                (i + 1) +
+                ": найти товар в категории и перейти к карточке (" +
+                web +
+                ").",
+              task_web: i % 4 === 0 ? "" : "https://example.com/" + web.toLowerCase() + "/item/" + i,
+              archived: i % 17 === 0 && i > 0,
+            });
+          }
+          return tasks;
+        }
+
+        function ver(id, label, createdAt, tasks, parent) {
+          return {
+            id: id,
+            label: label,
+            createdAt: createdAt,
+            tasks: tasks.map(function (t) {
+              return Object.assign({}, t);
+            }),
+            parentVersionId: parent,
+          };
+        }
+
+        var b1full = makeTasks("b1", 47);
+        var benchmarks = [
+          {
+            id: "b1",
+            name: "E-commerce навигация",
+            versions: [
+              ver("b1v1", "v1", "2026-03-01T12:00:00Z", b1full.slice(0, 28), null),
+              ver("b1v2", "v2", "2026-04-22T08:00:00Z", b1full.slice(0, 40), "b1v1"),
+              ver("b1v3", "v3", "2026-05-10T11:00:00Z", b1full, "b1v2"),
+            ],
+          },
+          {
+            id: "b2",
+            name: "Саппорт и тикеты",
+            versions: [ver("b2v1", "v1", "2026-05-01T14:00:00Z", makeTasks("b2", 25).slice(0, 22), null)],
+          },
+        ];
+
+        var runs = [
+          {
+            runId: "run-8842",
+            benchName: "E-commerce навигация",
+            benchVersion: "v3",
+            pipeline: "full_stack",
+            totalTasks: 240,
+            totalSuccess: 218,
+            totalFailed: 22,
+            startTime: "2026-05-13T07:12:00Z",
+            finishTime: "2026-05-13T09:45:00Z",
+            status: "Завершен",
+            navigatorVersion: "1.2.0",
+          },
+          {
+            runId: "run-8841",
+            benchName: "Саппорт и тикеты",
+            benchVersion: "v1",
+            pipeline: "navigator_only",
+            totalTasks: 512,
+            totalSuccess: 0,
+            totalFailed: 0,
+            startTime: "2026-05-13T10:01:00Z",
+            finishTime: null,
+            status: "В работе",
+            navigatorVersion: "1.2.0",
+          },
+        ];
+
+        function escapeHtml(s) {
+          return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        function formatIso(iso) {
+          if (!iso) return "—";
+          try {
+            return new Date(iso).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+          } catch (e) {
+            return iso;
+          }
+        }
+
+        function durationBetween(start, end) {
+          if (!end) return "—";
+          var sec = Math.round((new Date(end) - new Date(start)) / 1000);
+          if (sec < 60) return sec + " с";
+          var m = Math.floor(sec / 60);
+          var s = sec % 60;
+          return m + " мин " + s + " с";
+        }
+
+        function latest(b) {
+          return b.versions[b.versions.length - 1];
+        }
+
+        function sortTasks(tasks) {
+          return tasks.slice().sort(function (a, b) {
+            var w = a.web_name.localeCompare(b.web_name, "ru");
+            if (w !== 0) return w;
+            return a.task_id.localeCompare(b.task_id, "ru", { numeric: true });
+          });
+        }
+
+        function routeFromHash() {
+          var h = (location.hash || "#/").replace(/^#/, "") || "/";
+          var parts = h.split("/").filter(Boolean);
+          return { path: "/" + (parts[0] || ""), parts: parts };
+        }
+
+        function setActiveTabs() {
+          var r = routeFromHash();
+          var benchActive = r.path === "/" || r.path === "";
+          document.querySelectorAll(".admin-tabs .admin-tab[data-spa]").forEach(function (el) {
+            el.classList.toggle("admin-tab--active", benchActive);
+          });
+        }
+
+        /* ---------- UI state (bench detail) ---------- */
+        var ui = { viewVersionId: null, includeArchived: false, page: 1 };
+
+        function openModal(html) {
+          var wrap = document.createElement("div");
+          wrap.className = "modal-backdrop";
+          wrap.innerHTML = html;
+          wrap.addEventListener("click", function (e) {
+            if (e.target === wrap) wrap.remove();
+          });
+          document.body.appendChild(wrap);
+          var closeBtn = wrap.querySelector("[data-close]");
+          if (closeBtn)
+            closeBtn.addEventListener("click", function () {
+              wrap.remove();
+            });
+          return wrap;
+        }
+
+        function renderHome() {
+          ui = { viewVersionId: null, includeArchived: false, page: 1 };
+          var rows = benchmarks
+            .map(function (b) {
+              var v = latest(b);
+              return (
+                '<tr class="clickable" data-href="#/bench/' +
+                b.id +
+                '"><td><strong>' +
+                escapeHtml(b.name) +
+                "</strong></td><td>" +
+                escapeHtml(v.label) +
+                "</td><td>" +
+                v.tasks.length +
+                "</td><td>" +
+                formatIso(v.createdAt) +
+                '</td><td><button type="button" class="admin-btn admin-btn--sm" data-run-row="' +
+                escapeHtml(b.id) +
+                '">Запуск</button></td></tr>'
+              );
+            })
+            .join("");
+          return (
+            '<h1 class="admin-page-title">Бенчмарки</h1>' +
+            '<p class="admin-page-desc">Один файл <code>standalone.html</code> — без Node/npm. Полный UI в проекте: <code>npm run dev</code>.</p>' +
+            '<div class="admin-toolbar">' +
+            '<button type="button" class="admin-btn admin-btn--primary" id="btn-run-global">Запуск</button>' +
+            '<button type="button" class="admin-btn admin-btn--primary" id="btn-create">Создать</button></div>' +
+            '<div class="admin-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr>' +
+            "<th>Название</th><th>Текущая версия</th><th>Количество тасок</th><th>Дата и время версии</th><th></th>" +
+            "</tr></thead><tbody>" +
+            rows +
+            "</tbody></table></div></div>"
+          );
+        }
+
+        function renderBench(id) {
+          var b = benchmarks.find(function (x) {
+            return x.id === id;
+          });
+          if (!b) return "<p>Не найдено. <a data-spa href=\"#/\">На главную</a></p>";
+          var lv = latest(b);
+          var viewing =
+            ui.viewVersionId && b.versions.some(function (v) {
+              return v.id === ui.viewVersionId;
+            })
+              ? b.versions.find(function (v) {
+                  return v.id === ui.viewVersionId;
+                })
+              : lv;
+          var readOnly = viewing.id !== lv.id;
+
+          var chain = b.versions
+            .map(function (v, idx) {
+              var active = v.id === viewing.id ? " admin-version-pill--active" : "";
+              var arr = idx > 0 ? '<span style="color:var(--admin-muted)"> → </span>' : "";
+              return (
+                arr +
+                '<button type="button" class="admin-version-pill' +
+                active +
+                '" data-ver="' +
+                escapeHtml(v.id) +
+                '">' +
+                escapeHtml(v.label) +
+                "</button>"
+              );
+            })
+            .join("");
+
+          var sorted = sortTasks(viewing.tasks).filter(function (t) {
+            return ui.includeArchived || !t.archived;
+          });
+          var totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+          var p = Math.min(ui.page, totalPages);
+          var slice = sorted.slice((p - 1) * PAGE_SIZE, p * PAGE_SIZE);
+
+          var rows = slice
+            .map(function (t) {
+              var actions = readOnly
+                ? ""
+                : '<td style="white-space:nowrap"><button type="button" class="admin-btn admin-btn--sm" data-edit="' +
+                  escapeHtml(t.internalId) +
+                  '">Изменить</button> ' +
+                  (!t.archived
+                    ? '<button type="button" class="admin-btn admin-btn--sm admin-btn--danger" data-arch="' +
+                      escapeHtml(t.internalId) +
+                      '">В архив</button>'
+                    : '<button type="button" class="admin-btn admin-btn--sm" data-rest="' +
+                      escapeHtml(t.internalId) +
+                      '">Восстановить</button>') +
+                  "</td>";
+              var cb = readOnly
+                ? ""
+                : '<td><input type="checkbox" data-sel="' +
+                  escapeHtml(t.internalId) +
+                  '"' +
+                  (t.archived ? " disabled" : "") +
+                  " /></td>";
+              return (
+                "<tr>" +
+                cb +
+                "<td>" +
+                escapeHtml(t.web_name) +
+                '</td><td class="cell-mono" title="' +
+                escapeHtml(t.task_id) +
+                '">' +
+                escapeHtml(t.task_id) +
+                '</td><td class="cell-wrap" title="' +
+                escapeHtml(t.task_ques) +
+                '">' +
+                escapeHtml(t.task_ques) +
+                '</td><td class="cell-mono">' +
+                (t.task_web ? escapeHtml(t.task_web) : "—") +
+                "</td>" +
+                actions +
+                "</tr>"
+              );
+            })
+            .join("");
+
+          var pag = "";
+          for (var i = 1; i <= totalPages; i++) {
+            pag +=
+              '<button type="button" class="admin-page-btn' +
+              (i === p ? " admin-page-btn--active" : "") +
+              '" data-page="' +
+              i +
+              '">' +
+              i +
+              "</button>";
+          }
+
+          var toolbar =
+            '<div class="admin-toolbar admin-toolbar--split"><div class="switch-row"><label><input type="checkbox" id="sw-arch"' +
+            (ui.includeArchived ? " checked" : "") +
+            (readOnly ? " disabled" : "") +
+            '/> Показывать архивные таски</label></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap">' +
+            (readOnly
+              ? ""
+              : '<button type="button" class="admin-btn admin-btn--primary" id="btn-add">Добавить задачу</button>' +
+                '<button type="button" class="admin-btn admin-btn--primary" id="btn-run-all">Запуск всего бенча</button>' +
+                '<button type="button" class="admin-btn" id="btn-run-sel" disabled>Запуск выбранных (0)</button>') +
+            "</div></div>";
+
+          return (
+            '<div class="admin-breadcrumb"><a data-spa href="#/">Бенчмарки</a> / <strong>' +
+            escapeHtml(b.name) +
+            "</strong></div>" +
+            '<h1 class="admin-page-title">' +
+            escapeHtml(b.name) +
+            "</h1>" +
+            '<p class="admin-page-desc">Standalone: изменения версий не сохраняются между перезагрузками страницы.</p>' +
+            '<div class="admin-banner">Параллельное редактирование на бэкенде даст отдельные версии; здесь — демонстрация UI.</div>' +
+            '<div class="admin-card admin-card-pad" style="margin-bottom:1rem"><dl class="admin-meta-grid">' +
+            "<div><dt>Текущая версия (latest)</dt><dd>" +
+            escapeHtml(lv.label) +
+            "</dd></div>" +
+            "<div><dt>Просмотр</dt><dd>" +
+            escapeHtml(viewing.label) +
+            (readOnly ? " (только чтение)" : "") +
+            "</dd></div>" +
+            "<div><dt>Тасок в версии</dt><dd>" +
+            viewing.tasks.length +
+            "</dd></div>" +
+            "<div><dt>Дата версии</dt><dd>" +
+            formatIso(viewing.createdAt) +
+            "</dd></div></dl></div>" +
+            '<div class="admin-version-chain">' +
+            chain +
+            "</div>" +
+            toolbar +
+            '<div class="admin-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr>' +
+            (readOnly ? "" : "<th style=\"width:36px\"></th>") +
+            "<th>web_name</th><th>task_id</th><th>task_ques</th><th>task_web</th>" +
+            (readOnly ? "" : "<th>Действия</th>") +
+            "</tr></thead><tbody>" +
+            rows +
+            '</tbody></table></div><div class="admin-pagination">' +
+            pag +
+            "</div></div>"
+          );
+        }
+
+        function renderRuns() {
+          var rows = runs
+            .map(function (r) {
+              return (
+                '<tr class="clickable" data-href="#/runs/' +
+                escapeHtml(r.runId) +
+                '"><td class="cell-mono">' +
+                escapeHtml(r.runId) +
+                "</td><td>" +
+                escapeHtml(r.benchName) +
+                ' <span class="admin-pill admin-pill--warn">' +
+                escapeHtml(r.benchVersion) +
+                "</span></td><td>" +
+                escapeHtml(r.pipeline) +
+                "</td><td>" +
+                r.totalTasks +
+                "</td><td>" +
+                r.totalSuccess +
+                "</td><td>" +
+                r.totalFailed +
+                "</td><td>" +
+                formatIso(r.startTime) +
+                "</td><td>" +
+                formatIso(r.finishTime) +
+                "</td><td>" +
+                durationBetween(r.startTime, r.finishTime) +
+                "</td><td>" +
+                statusPill(r.status) +
+                "</td></tr>"
+              );
+            })
+            .join("");
+          return (
+            '<div class="admin-breadcrumb"><a data-spa href="#/">Бенчмарки</a> / <strong>Запуски</strong></div>' +
+            '<h1 class="admin-page-title">Запуски</h1><p class="admin-page-desc">Демо-таблица.</p>' +
+            '<div class="admin-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr>' +
+            "<th>run_id</th><th>Бенч</th><th>pipeline</th><th>Всего</th><th>Успех</th><th>Ошибки</th><th>Старт</th><th>Финиш</th><th>Длит.</th><th>Статус</th>" +
+            "</tr></thead><tbody>" +
+            rows +
+            "</tbody></table></div></div>"
+          );
+        }
+
+        function statusPill(st) {
+          var c = st === "Завершен" ? "admin-pill--ok" : st === "В работе" ? "admin-pill--warn" : "admin-pill--bad";
+          return '<span class="admin-pill ' + c + '">' + escapeHtml(st) + "</span>";
+        }
+
+        function renderCompare() {
+          return (
+            '<div class="admin-breadcrumb"><a data-spa href="#/">Бенчмарки</a> / <strong>Сравнение</strong></div>' +
+            '<h1 class="admin-page-title">Сравнение</h1><p class="admin-page-desc">Упрощённый экран в standalone.</p>' +
+            '<div class="admin-card admin-card-pad"><p class="admin-hint" style="margin:0">В полной версии React — выбор двух run и метрики.</p></div>'
+          );
+        }
+
+        function renderRunDetail(rid) {
+          return (
+            '<div class="admin-breadcrumb"><a data-spa href="#/runs">Запуски</a> / <strong>' +
+            escapeHtml(rid) +
+            "</strong></div>" +
+            '<h1 class="admin-page-title">Запуск ' +
+            escapeHtml(rid) +
+            '</h1><div class="admin-card admin-card-pad"><p class="admin-hint" style="margin:0">Детальная карточка — в React-версии.</p></div>'
+          );
+        }
+
+        function wireBenchPage(id) {
+          document.querySelectorAll(".admin-version-pill").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              var vid = btn.getAttribute("data-ver");
+              var b = benchmarks.find(function (x) {
+                return x.id === id;
+              });
+              var lv = latest(b);
+              ui.viewVersionId = vid === lv.id ? null : vid;
+              ui.page = 1;
+              render();
+            });
+          });
+          var sw = document.getElementById("sw-arch");
+          if (sw)
+            sw.addEventListener("change", function () {
+              ui.includeArchived = sw.checked;
+              ui.page = 1;
+              render();
+            });
+          document.querySelectorAll("[data-page]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              ui.page = parseInt(btn.getAttribute("data-page"), 10);
+              render();
+            });
+          });
+          function updateSelBtn() {
+            var n = document.querySelectorAll("input[data-sel]:checked").length;
+            var b = document.getElementById("btn-run-sel");
+            if (b) {
+              b.disabled = n === 0;
+              b.textContent = "Запуск выбранных (" + n + ")";
+            }
+          }
+          document.querySelectorAll("input[data-sel]").forEach(function (cb) {
+            cb.addEventListener("change", updateSelBtn);
+          });
+          updateSelBtn();
+
+          document.querySelectorAll("[data-edit]").forEach(function (btn) {
+            btn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              openModal(
+                '<div class="admin-modal"><div class="admin-modal-head"><h2>Изменить задачу</h2><button type="button" class="admin-modal-close" data-close>&times;</button></div>' +
+                  '<div class="admin-modal-body"><p class="admin-hint">Подтверждение новой версии — в React. Здесь только макет формы.</p>' +
+                  '<div class="admin-field"><label>web_name</label><input class="admin-input"/></div>' +
+                  '<div class="admin-field"><label>task_ques</label><textarea class="admin-input"></textarea></div>' +
+                  '<div class="admin-field"><label>task_web</label><input class="admin-input"/></div></div>' +
+                  '<div class="admin-modal-foot"><button type="button" class="admin-btn" data-close>Отмена</button><button type="button" class="admin-btn admin-btn--primary" data-close>Сохранить</button></div></div>'
+              );
+            });
+          });
+          document.querySelectorAll("[data-arch],[data-rest]").forEach(function (btn) {
+            btn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              openModal(
+                '<div class="admin-modal"><div class="admin-modal-head"><h2>Новая версия бенчмарка</h2><button type="button" class="admin-modal-close" data-close>&times;</button></div>' +
+                  '<div class="admin-modal-body"><p class="admin-hint">Будет создана новая версия бенчмарка. Продолжить?</p></div>' +
+                  '<div class="admin-modal-foot"><button type="button" class="admin-btn" data-close>Отмена</button><button type="button" class="admin-btn admin-btn--primary" data-close>Продолжить</button></div></div>'
+              );
+            });
+          });
+
+          var addBtn = document.getElementById("btn-add");
+          if (addBtn)
+            addBtn.addEventListener("click", function () {
+              openModal(
+                '<div class="admin-modal" role="dialog"><div class="admin-modal-head"><h2>Новая задача</h2><button type="button" class="admin-modal-close" data-close>&times;</button></div>' +
+                  '<div class="admin-modal-body"><p class="admin-hint">task_id генерируется автоматически (в полной логике).</p>' +
+                  '<div class="admin-field"><label>web_name</label><input class="admin-input" id="m-web" placeholder="Amazon"/></div>' +
+                  '<div class="admin-field"><label>task_ques</label><textarea class="admin-input" id="m-q"></textarea></div>' +
+                  '<div class="admin-field"><label>task_web</label><input class="admin-input" id="m-u"/></div></div>' +
+                  '<div class="admin-modal-foot"><button type="button" class="admin-btn" data-close>Отмена</button><button type="button" class="admin-btn admin-btn--primary" id="m-save">Сохранить</button></div></div>'
+              );
+              document.getElementById("m-save").addEventListener("click", function () {
+                document.querySelector(".modal-backdrop").remove();
+                alert("В standalone правки не сохраняются в файл. Используйте npm run dev для интерактива.");
+              });
+            });
+
+          document.getElementById("btn-run-all") &&
+            document.getElementById("btn-run-all").addEventListener("click", showRunModal);
+          document.getElementById("btn-run-sel") &&
+            document.getElementById("btn-run-sel").addEventListener("click", showRunModal);
+        }
+
+        function showRunModal() {
+          openModal(
+            '<div class="admin-modal admin-modal--wide" role="dialog"><div class="admin-modal-head"><h2>Запуск (демо)</h2><button type="button" class="admin-modal-close" data-close>&times;</button></div>' +
+              '<div class="admin-modal-body"><p class="admin-hint">Поля как в ТЗ — в React-модалке полностью. Здесь заглушка.</p>' +
+              '<div class="admin-field"><label>pipeline</label><select class="admin-input"><option>full_stack</option></select></div>' +
+              '<div class="admin-field"><label>navigator_version</label><select class="admin-input"><option>1.2.0</option></select></div></div>' +
+              '<div class="admin-modal-foot"><button type="button" class="admin-btn" data-close>Отмена</button><button type="button" class="admin-btn admin-btn--primary" data-close>Запустить</button></div></div>'
+          );
+        }
+
+        function render() {
+          setActiveTabs();
+          var r = routeFromHash();
+          var app = document.getElementById("app");
+          if (r.path === "/" || r.path === "") app.innerHTML = renderHome();
+          else if (r.path === "/bench" && r.parts[1]) app.innerHTML = renderBench(r.parts[1]);
+          else if (r.path === "/runs" && r.parts.length >= 2) app.innerHTML = renderRunDetail(r.parts[1]);
+          else if (r.path === "/runs") app.innerHTML = renderRuns();
+          else if (r.path === "/compare") app.innerHTML = renderCompare();
+          else app.innerHTML = "<p>Не найдено.</p>";
+
+          document.querySelectorAll("tr.clickable").forEach(function (tr) {
+            tr.addEventListener("click", function (e) {
+              if (e.target.closest("button")) return;
+              var href = tr.getAttribute("data-href");
+              if (href) location.hash = href;
+            });
+          });
+
+          if (r.path === "/" || r.path === "") {
+            document.getElementById("btn-create") &&
+              document.getElementById("btn-create").addEventListener("click", function () {
+                openModal(
+                  '<div class="admin-modal"><div class="admin-modal-head"><h2>Новый бенчмарк</h2><button type="button" class="admin-modal-close" data-close>&times;</button></div>' +
+                    '<div class="admin-modal-body"><div class="admin-field"><label>Название</label><input class="admin-input" id="bn"/></div><p class="admin-hint">В standalone без сохранения в файл.</p></div>' +
+                    '<div class="admin-modal-foot"><button type="button" class="admin-btn" data-close>Отмена</button><button type="button" class="admin-btn admin-btn--primary" data-close>Далее</button></div></div>'
+                );
+              });
+            document.getElementById("btn-run-global") &&
+              document.getElementById("btn-run-global").addEventListener("click", showRunModal);
+            document.querySelectorAll("[data-run-row]").forEach(function (btn) {
+              btn.addEventListener("click", function (e) {
+                e.stopPropagation();
+                showRunModal();
+              });
+            });
+          }
+          if (r.path === "/bench" && r.parts[1]) wireBenchPage(r.parts[1]);
+        }
+
+        window.addEventListener("hashchange", render);
+        window.addEventListener("load", function () {
+          document.body.addEventListener("click", function (e) {
+            var a = e.target.closest("[data-spa]");
+            if (a) {
+              e.preventDefault();
+              var href = a.getAttribute("href") || "";
+              location.hash = href.startsWith("#") ? href : "#" + href;
+              render();
+            }
+          });
+          if (!location.hash) location.hash = "#/";
+          render();
+        });
+      })();
+    </script>
+  </body>
+</html>
