@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBenchmarks } from "../context/BenchmarkContext";
 import { useRuns } from "../context/RunsContext";
@@ -74,8 +74,6 @@ export default function BenchmarkDetailPage() {
   const totalPages = Math.max(1, Math.ceil(displayTasks.length / PAGE_SIZE));
   const pageClamped = Math.min(page, totalPages);
   const slice = displayTasks.slice((pageClamped - 1) * PAGE_SIZE, pageClamped * PAGE_SIZE);
-
-  const colCount = !readOnly ? 6 : 4;
 
   const launchHandler = useCallback(
     (payload: RunLaunchSubmitPayload) => {
@@ -306,76 +304,70 @@ export default function BenchmarkDetailPage() {
 
       <div className="admin-card">
         <div className="admin-table-wrap">
-          <table className="admin-table admin-table--tasks">
+          <table className="admin-table">
             <thead>
               <tr>
                 {!readOnly ? <th style={{ width: 40 }} /> : null}
                 <th>web_name</th>
                 <th>task_id</th>
+                <th>task_ques</th>
                 <th>task_web</th>
                 {!readOnly ? <th>Действия</th> : null}
               </tr>
             </thead>
             <tbody>
               {slice.map((t) => (
-                <Fragment key={t.internalId}>
-                  <tr>
-                    {!readOnly ? (
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(t.internalId)}
-                          onChange={() => toggleSelect(t.internalId)}
-                          disabled={t.archived}
-                          aria-label="Выбрать для запуска"
-                        />
-                      </td>
-                    ) : null}
-                    <td>{t.web_name}</td>
-                    <td className="cell-mono" title={t.task_id}>
-                      {t.task_id}
+                <tr key={t.internalId}>
+                  {!readOnly ? (
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(t.internalId)}
+                        onChange={() => toggleSelect(t.internalId)}
+                        disabled={t.archived}
+                        aria-label="Выбрать для запуска"
+                      />
                     </td>
-                    <td className="cell-mono" title={t.task_web || "—"}>
-                      {t.task_web || "—"}
-                    </td>
-                    {!readOnly ? (
-                      <td style={{ whiteSpace: "nowrap" }}>
+                  ) : null}
+                  <td>{t.web_name}</td>
+                  <td className="cell-mono" title={t.task_id}>
+                    {t.task_id}
+                  </td>
+                  <td className="cell-wrap" title={t.task_ques}>
+                    {t.task_ques}
+                  </td>
+                  <td className="cell-mono" title={t.task_web || "—"}>
+                    {t.task_web || "—"}
+                  </td>
+                  {!readOnly ? (
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn--sm"
+                        onClick={() => openEdit(t)}
+                      >
+                        Изменить
+                      </button>{" "}
+                      {!t.archived ? (
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn--sm admin-btn--danger"
+                          onClick={() => archive(t)}
+                        >
+                          В архив
+                        </button>
+                      ) : (
                         <button
                           type="button"
                           className="admin-btn admin-btn--sm"
-                          onClick={() => openEdit(t)}
+                          onClick={() => restore(t)}
                         >
-                          Изменить
-                        </button>{" "}
-                        {!t.archived ? (
-                          <button
-                            type="button"
-                            className="admin-btn admin-btn--sm admin-btn--danger"
-                            onClick={() => archive(t)}
-                          >
-                            В архив
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="admin-btn admin-btn--sm"
-                            onClick={() => restore(t)}
-                          >
-                            Восстановить
-                          </button>
-                        )}
-                      </td>
-                    ) : null}
-                  </tr>
-                  <tr className="admin-task-ques-row">
-                    <td colSpan={colCount}>
-                      <div className="admin-task-ques-block">
-                        <span className="admin-task-ques-label">task_ques</span>
-                        {t.task_ques}
-                      </div>
+                          Восстановить
+                        </button>
+                      )}
                     </td>
-                  </tr>
-                </Fragment>
+                  ) : null}
+                </tr>
               ))}
             </tbody>
           </table>

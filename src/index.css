@@ -619,31 +619,6 @@ button {
   color: #b91c1c;
 }
 
-.admin-table--tasks .admin-task-ques-row td {
-  background: var(--admin-row-alt);
-  border-top: none;
-  padding-top: 0.35rem;
-  padding-bottom: 0.65rem;
-}
-
-.admin-task-ques-block {
-  display: block;
-  white-space: pre-wrap;
-  font-size: 0.9rem;
-  line-height: 1.45;
-  color: var(--admin-text);
-}
-
-.admin-task-ques-label {
-  display: block;
-  font-size: 0.68rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--admin-muted);
-  margin-bottom: 0.25rem;
-}
-
 .admin-link-btn {
   display: inline;
   padding: 0;
