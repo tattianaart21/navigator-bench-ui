@@ -5,7 +5,7 @@ import {
   SAMPLE_WEB_BROWSER_PATH,
   SAMPLE_WEB_BROWSER_USER_DIR,
 } from "../data/sampleRunExamples";
-import type { BenchmarkData } from "../types/benchmark";
+import type { BenchmarkData, BenchmarkRunLaunchDefaults } from "../types/benchmark";
 
 export type RunLaunchForm = {
   web_browser_path: string;
@@ -58,6 +58,19 @@ const initialForm: RunLaunchForm = {
   screenshots_without_markup: false,
 };
 
+function mergeLaunchForm(base: RunLaunchForm, d?: BenchmarkRunLaunchDefaults | null): RunLaunchForm {
+  if (!d) return base;
+  const o = { ...base };
+  (Object.entries(d) as [keyof BenchmarkRunLaunchDefaults, string | number | boolean | undefined][]).forEach(
+    ([k, v]) => {
+      if (v !== undefined && k in o) {
+        (o as Record<string, unknown>)[k as string] = v;
+      }
+    }
+  );
+  return o;
+}
+
 export type RunLaunchSubmitPayload = RunLaunchForm & {
   benchmarkId: string;
   selectedTaskInternalIds: string[] | null;
@@ -88,14 +101,31 @@ export default function RunLaunchModal({
   const [benchId, setBenchId] = useState<string>(defaultBenchmarkId ?? benchmarks[0]?.id ?? "");
   const [form, setForm] = useState<RunLaunchForm>(initialForm);
 
+  const effectiveBenchId = lockedBenchmarkId ?? benchId;
+
   useEffect(() => {
-    if (open) {
-      setBenchId(lockedBenchmarkId ?? defaultBenchmarkId ?? benchmarks[0]?.id ?? "");
-      setForm((f) => ({ ...f, created_at: new Date().toISOString() }));
-    }
+    if (!open) return;
+    const id = lockedBenchmarkId ?? defaultBenchmarkId ?? benchmarks[0]?.id ?? "";
+    setBenchId(id);
+    const b = benchmarks.find((x) => x.id === id);
+    setForm(
+      mergeLaunchForm(
+        { ...initialForm, created_at: new Date().toISOString() },
+        b?.runLaunchDefaults ?? null
+      )
+    );
   }, [open, defaultBenchmarkId, benchmarks, lockedBenchmarkId]);
 
-  const effectiveBenchId = lockedBenchmarkId ?? benchId;
+  useEffect(() => {
+    if (!open || lockedBenchmarkId) return;
+    const b = benchmarks.find((x) => x.id === effectiveBenchId);
+    setForm((prev) =>
+      mergeLaunchForm(
+        { ...initialForm, created_at: prev.created_at },
+        b?.runLaunchDefaults ?? null
+      )
+    );
+  }, [effectiveBenchId, benchmarks, open, lockedBenchmarkId]);
 
   const benchOptions = useMemo(
     () =>

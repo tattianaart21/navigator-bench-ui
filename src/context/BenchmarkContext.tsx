@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { buildInitialBenchmarks, nextTaskIdForWeb } from "../data/initialBenchmarks";
-import type { BenchTask, BenchmarkData } from "../types/benchmark";
+import type { BenchTask, BenchmarkData, BenchmarkRunLaunchDefaults } from "../types/benchmark";
 import { tasksEqual } from "../lib/tasksEqual";
 
 function cloneTask(t: BenchTask): BenchTask {
@@ -53,6 +53,15 @@ type Ctx = {
     tasks: BenchTask[],
     mode: "inPlace" | "newVersion"
   ) => void;
+  /** Скрытая правка демо-данных бенчмарка (без новой версии). */
+  datasetPatchBenchmark: (
+    benchId: string,
+    patch: {
+      name?: string;
+      latestVersion?: Partial<{ label: string; createdAt: string; tasks: BenchTask[] }>;
+      runLaunchDefaults?: BenchmarkRunLaunchDefaults | null;
+    }
+  ) => void;
 };
 
 const BenchmarkContext = createContext<Ctx | null>(null);
@@ -74,7 +83,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
       tasks: [],
       parentVersionId: null,
     };
-    setBenchmarks((prev) => [...prev, { id, name, versions: [v1] }]);
+    setBenchmarks((prev) => [...prev, { id, name, versions: [v1], runLaunchDefaults: {} }]);
     return id;
   }, []);
 
@@ -218,6 +227,47 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const datasetPatchBenchmark = useCallback(
+    (
+      benchId: string,
+      patch: {
+        name?: string;
+        latestVersion?: Partial<{ label: string; createdAt: string; tasks: BenchTask[] }>;
+        runLaunchDefaults?: BenchmarkRunLaunchDefaults | null;
+      }
+    ) => {
+      setBenchmarks((prev) =>
+        prev.map((b) => {
+          if (b.id !== benchId) return b;
+          const last = latestVersion(b);
+          const nextLast = {
+            ...last,
+            ...(patch.latestVersion?.label !== undefined ? { label: patch.latestVersion.label } : {}),
+            ...(patch.latestVersion?.createdAt !== undefined
+              ? { createdAt: patch.latestVersion.createdAt }
+              : {}),
+            ...(patch.latestVersion?.tasks !== undefined
+              ? { tasks: cloneVersionTasks(patch.latestVersion.tasks) }
+              : {}),
+          };
+          const versions = [...b.versions.slice(0, -1), nextLast];
+          let runLaunchDefaults = b.runLaunchDefaults;
+          if (patch.runLaunchDefaults === null) runLaunchDefaults = undefined;
+          else if (patch.runLaunchDefaults !== undefined) {
+            runLaunchDefaults = { ...b.runLaunchDefaults, ...patch.runLaunchDefaults };
+          }
+          return {
+            ...b,
+            ...(patch.name !== undefined ? { name: patch.name } : {}),
+            versions,
+            runLaunchDefaults,
+          };
+        })
+      );
+    },
+    []
+  );
+
   const value = useMemo(
     () => ({
       benchmarks,
@@ -227,8 +277,18 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
       updateTask,
       setTaskArchived,
       commitBenchTasks,
+      datasetPatchBenchmark,
     }),
-    [benchmarks, getBenchmark, createBenchmark, addTask, updateTask, setTaskArchived, commitBenchTasks]
+    [
+      benchmarks,
+      getBenchmark,
+      createBenchmark,
+      addTask,
+      updateTask,
+      setTaskArchived,
+      commitBenchTasks,
+      datasetPatchBenchmark,
+    ]
   );
 
   return (

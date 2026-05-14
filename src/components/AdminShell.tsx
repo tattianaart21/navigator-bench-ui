@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import DatasetEditorDrawer from "./DatasetEditorDrawer";
 
 const tabs = [
   { to: "#", label: "Блэклист", disabled: true },
@@ -47,6 +48,7 @@ export default function AdminShell() {
       <div className="admin-page">
         <Outlet />
       </div>
+      <DatasetEditorDrawer />
     </div>
   );
 }

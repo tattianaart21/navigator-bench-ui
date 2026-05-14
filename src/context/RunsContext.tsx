@@ -29,6 +29,10 @@ type Ctx = {
   getTaskResults: (benchId: string) => TaskResult[];
   addRun: (payload: LaunchPayload) => string;
   cancelRun: (benchId: string) => void;
+  datasetPatchRun: (
+    benchRunId: string,
+    patch: { row?: Partial<RunRow>; params?: Partial<RunParams>; tasks?: TaskResult[] }
+  ) => void;
 };
 
 const RunsContext = createContext<Ctx | null>(null);
@@ -240,6 +244,30 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     [clearTimer]
   );
 
+  const datasetPatchRun = useCallback(
+    (
+      benchRunId: string,
+      patch: { row?: Partial<RunRow>; params?: Partial<RunParams>; tasks?: TaskResult[] }
+    ) => {
+      if (patch.row) {
+        setRows((prev) =>
+          prev.map((r) => (r.benchId === benchRunId ? { ...r, ...patch.row } : r))
+        );
+      }
+      if (patch.params) {
+        setParamsById((prev) => {
+          const cur = prev[benchRunId];
+          if (!cur) return prev;
+          return { ...prev, [benchRunId]: { ...cur, ...patch.params } };
+        });
+      }
+      if (patch.tasks) {
+        setTasksById((prev) => ({ ...prev, [benchRunId]: patch.tasks! }));
+      }
+    },
+    []
+  );
+
   const value = useMemo(
     () => ({
       runs: rows,
@@ -248,8 +276,9 @@ export function RunsProvider({ children }: { children: ReactNode }) {
       getTaskResults,
       addRun,
       cancelRun,
+      datasetPatchRun,
     }),
-    [rows, getRunRow, getRunParams, getTaskResults, addRun, cancelRun]
+    [rows, getRunRow, getRunParams, getTaskResults, addRun, cancelRun, datasetPatchRun]
   );
 
   return <RunsContext.Provider value={value}>{children}</RunsContext.Provider>;
