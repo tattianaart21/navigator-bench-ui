@@ -261,7 +261,7 @@ export default function ComparePage() {
         </p>
         <div className="admin-form-grid" style={{ maxWidth: 640 }}>
           <div className="admin-field">
-            <label htmlFor="cmp-a">Поле с выпадающим списком №1</label>
+            <label htmlFor="cmp-a">Запуск A</label>
             <select
               id="cmp-a"
               className="admin-input"
@@ -276,7 +276,7 @@ export default function ComparePage() {
             </select>
           </div>
           <div className="admin-field">
-            <label htmlFor="cmp-b">Поле с выпадающим списком №2</label>
+            <label htmlFor="cmp-b">Запуск B</label>
             <select
               id="cmp-b"
               className="admin-input"
