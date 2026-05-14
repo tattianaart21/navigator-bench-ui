@@ -140,3 +140,18 @@ export function collectFilterOptions(runs: RunRow[]): {
 export function runSelectLabel(r: RunRow): string {
   return `${r.benchName} · ${r.benchVersion} · №${r.runNumber}`;
 }
+
+export function compareFiltersActive(f: CompareRunFilters): boolean {
+  return (
+    f.pipeline.length > 0 ||
+    f.plannerModel.length > 0 ||
+    f.plannerVersion.length > 0 ||
+    f.navigatorModel.length > 0 ||
+    f.navigatorVersion.length > 0 ||
+    f.judgeName.length > 0 ||
+    Boolean(f.startFrom) ||
+    Boolean(f.startTo) ||
+    Boolean(f.finishFrom) ||
+    Boolean(f.finishTo)
+  );
+}

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import CompareDashboardChart from "../components/CompareDashboardChart";
 import { useRuns } from "../context/RunsContext";
 import {
   collectFilterOptions,
+  compareFiltersActive,
   defaultComparePair,
   emptyCompareFilters,
   filterRunsForCompare,
@@ -12,7 +14,7 @@ import {
   takeLatestRuns,
   type CompareRunFilters,
 } from "../lib/compareRuns";
-import { durationBetween, formatIso } from "../lib/format";
+import { durationBetween, durationSeconds, formatIso } from "../lib/format";
 import type { RunRow } from "../types/run";
 
 function fmtNum(n: number | null): string {
@@ -29,6 +31,19 @@ function mergeOptionPool(top: RunRow[], extra: RunRow[], cap: number): RunRow[] 
     if (out.length >= cap) break;
   }
   return out;
+}
+
+function FilterIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 6h16M7 12h10M10 18h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
 
 function MultiSelect(props: {
@@ -68,14 +83,13 @@ function MultiSelect(props: {
 export default function ComparePage() {
   const { runs } = useRuns();
   const [filters, setFilters] = useState<CompareRunFilters>(() => ({ ...emptyCompareFilters }));
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [leftId, setLeftId] = useState("");
   const [rightId, setRightId] = useState("");
   const initRef = useRef(false);
 
   const filterOptions = useMemo(() => collectFilterOptions(runs), [runs]);
-
   const filtered = useMemo(() => filterRunsForCompare(runs, filters), [runs, filters]);
-
   const top20 = useMemo(() => takeLatestRuns(filtered, 20), [filtered]);
 
   const leftRow = runs.find((r) => r.benchId === leftId);
@@ -99,6 +113,9 @@ export default function ComparePage() {
     const maxFin = fins.length ? fins.reduce((a, b) => (a > b ? a : b)) : "";
     return { minStart, maxStart, minFin, maxFin };
   }, [runs]);
+
+  const durA = durationSeconds(leftRow?.startTime ?? null, leftRow?.finishTime ?? null);
+  const durB = durationSeconds(rightRow?.startTime ?? null, rightRow?.finishTime ?? null);
 
   useEffect(() => {
     if (!runs.length) return;
@@ -136,6 +153,8 @@ export default function ComparePage() {
       "—"
     );
 
+  const filtersDirty = compareFiltersActive(filters);
+
   return (
     <>
       <div className="admin-breadcrumb">
@@ -145,111 +164,134 @@ export default function ComparePage() {
       </div>
       <h1 className="admin-page-title">Сравнение запусков</h1>
 
-      <div className="admin-card admin-card-pad" style={{ marginBottom: "1rem" }}>
-        <h2 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>Фильтрация</h2>
-        <p className="admin-hint" style={{ marginTop: 0 }}>
-          Значения в списках формируются из доступных запусков. После смены фильтра пары запусков
-          подбираются заново, если текущие не попадают в выборку.
-        </p>
-        <div className="admin-form-grid">
-          <MultiSelect
-            id="cf-pipeline"
-            label="pipeline"
-            options={filterOptions.pipelines}
-            value={filters.pipeline}
-            onChange={(v) => setFilters((p) => ({ ...p, pipeline: v }))}
-          />
-          <MultiSelect
-            id="cf-planner-model"
-            label="planner_model"
-            options={filterOptions.plannerModels}
-            value={filters.plannerModel}
-            onChange={(v) => setFilters((p) => ({ ...p, plannerModel: v }))}
-          />
-          <MultiSelect
-            id="cf-planner-ver"
-            label="planner_version"
-            options={filterOptions.plannerVersions}
-            value={filters.plannerVersion}
-            onChange={(v) => setFilters((p) => ({ ...p, plannerVersion: v }))}
-          />
-          <MultiSelect
-            id="cf-nav-model"
-            label="navigator_model"
-            options={filterOptions.navigatorModels}
-            value={filters.navigatorModel}
-            onChange={(v) => setFilters((p) => ({ ...p, navigatorModel: v }))}
-          />
-          <MultiSelect
-            id="cf-nav-ver"
-            label="navigator_version"
-            options={filterOptions.navigatorVersions}
-            value={filters.navigatorVersion}
-            onChange={(v) => setFilters((p) => ({ ...p, navigatorVersion: v }))}
-          />
-          <MultiSelect
-            id="cf-judge"
-            label="judge_name"
-            options={filterOptions.judgeNames}
-            value={filters.judgeName}
-            onChange={(v) => setFilters((p) => ({ ...p, judgeName: v }))}
-          />
-          <div className="admin-field">
-            <label htmlFor="cf-start-from">start_time с</label>
-            <input
-              id="cf-start-from"
-              type="date"
-              className="admin-input"
-              value={filters.startFrom}
-              onChange={(e) => setFilters((p) => ({ ...p, startFrom: e.target.value }))}
-            />
-          </div>
-          <div className="admin-field">
-            <label htmlFor="cf-start-to">start_time по</label>
-            <input
-              id="cf-start-to"
-              type="date"
-              className="admin-input"
-              value={filters.startTo}
-              onChange={(e) => setFilters((p) => ({ ...p, startTo: e.target.value }))}
-            />
-          </div>
-          <div className="admin-field">
-            <label htmlFor="cf-fin-from">finish_time с</label>
-            <input
-              id="cf-fin-from"
-              type="date"
-              className="admin-input"
-              value={filters.finishFrom}
-              onChange={(e) => setFilters((p) => ({ ...p, finishFrom: e.target.value }))}
-            />
-          </div>
-          <div className="admin-field">
-            <label htmlFor="cf-fin-to">finish_time по</label>
-            <input
-              id="cf-fin-to"
-              type="date"
-              className="admin-input"
-              value={filters.finishTo}
-              onChange={(e) => setFilters((p) => ({ ...p, finishTo: e.target.value }))}
-            />
-          </div>
-        </div>
-        <p className="admin-hint" style={{ marginBottom: 0 }}>
-          Диапазоны дат в данных: start {dateHints.minStart ? dateHints.minStart.slice(0, 10) : "—"} …{" "}
-          {dateHints.maxStart ? dateHints.maxStart.slice(0, 10) : "—"}; finish{" "}
-          {dateHints.minFin ? dateHints.minFin.slice(0, 10) : "—"} …{" "}
-          {dateHints.maxFin ? dateHints.maxFin.slice(0, 10) : "—"}
-        </p>
+      <div className="compare-toolbar">
         <button
           type="button"
-          className="admin-btn admin-btn--ghost"
-          style={{ marginTop: "0.75rem" }}
-          onClick={() => setFilters({ ...emptyCompareFilters })}
+          className={
+            "admin-icon-btn" +
+            (filtersOpen ? " admin-icon-btn--active" : "") +
+            (filtersDirty ? " admin-icon-btn--dot" : "")
+          }
+          aria-expanded={filtersOpen}
+          aria-controls="compare-filters-panel"
+          title={filtersOpen ? "Скрыть фильтры" : "Показать фильтры"}
+          onClick={() => setFiltersOpen((v) => !v)}
         >
-          Сбросить фильтры
+          <FilterIcon />
         </button>
+        <span className="admin-hint" style={{ margin: 0 }}>
+          {filtersOpen ? "Скрыть панель фильтрации" : "Фильтрация запусков"}
+          {filtersDirty ? " · заданы условия" : ""}
+        </span>
       </div>
+
+      {filtersOpen ? (
+        <div id="compare-filters-panel" className="admin-card admin-card-pad compare-filters-panel">
+          <h2 className="visually-hidden">Фильтрация</h2>
+          <p className="admin-hint" style={{ marginTop: 0 }}>
+            Значения в списках формируются из доступных запусков. После смены фильтра пары запусков
+            подбираются заново, если текущие не попадают в выборку.
+          </p>
+          <div className="admin-form-grid">
+            <MultiSelect
+              id="cf-pipeline"
+              label="pipeline"
+              options={filterOptions.pipelines}
+              value={filters.pipeline}
+              onChange={(v) => setFilters((p) => ({ ...p, pipeline: v }))}
+            />
+            <MultiSelect
+              id="cf-planner-model"
+              label="planner_model"
+              options={filterOptions.plannerModels}
+              value={filters.plannerModel}
+              onChange={(v) => setFilters((p) => ({ ...p, plannerModel: v }))}
+            />
+            <MultiSelect
+              id="cf-planner-ver"
+              label="planner_version"
+              options={filterOptions.plannerVersions}
+              value={filters.plannerVersion}
+              onChange={(v) => setFilters((p) => ({ ...p, plannerVersion: v }))}
+            />
+            <MultiSelect
+              id="cf-nav-model"
+              label="navigator_model"
+              options={filterOptions.navigatorModels}
+              value={filters.navigatorModel}
+              onChange={(v) => setFilters((p) => ({ ...p, navigatorModel: v }))}
+            />
+            <MultiSelect
+              id="cf-nav-ver"
+              label="navigator_version"
+              options={filterOptions.navigatorVersions}
+              value={filters.navigatorVersion}
+              onChange={(v) => setFilters((p) => ({ ...p, navigatorVersion: v }))}
+            />
+            <MultiSelect
+              id="cf-judge"
+              label="judge_name"
+              options={filterOptions.judgeNames}
+              value={filters.judgeName}
+              onChange={(v) => setFilters((p) => ({ ...p, judgeName: v }))}
+            />
+            <div className="admin-field">
+              <label htmlFor="cf-start-from">start_time с</label>
+              <input
+                id="cf-start-from"
+                type="date"
+                className="admin-input"
+                value={filters.startFrom}
+                onChange={(e) => setFilters((p) => ({ ...p, startFrom: e.target.value }))}
+              />
+            </div>
+            <div className="admin-field">
+              <label htmlFor="cf-start-to">start_time по</label>
+              <input
+                id="cf-start-to"
+                type="date"
+                className="admin-input"
+                value={filters.startTo}
+                onChange={(e) => setFilters((p) => ({ ...p, startTo: e.target.value }))}
+              />
+            </div>
+            <div className="admin-field">
+              <label htmlFor="cf-fin-from">finish_time с</label>
+              <input
+                id="cf-fin-from"
+                type="date"
+                className="admin-input"
+                value={filters.finishFrom}
+                onChange={(e) => setFilters((p) => ({ ...p, finishFrom: e.target.value }))}
+              />
+            </div>
+            <div className="admin-field">
+              <label htmlFor="cf-fin-to">finish_time по</label>
+              <input
+                id="cf-fin-to"
+                type="date"
+                className="admin-input"
+                value={filters.finishTo}
+                onChange={(e) => setFilters((p) => ({ ...p, finishTo: e.target.value }))}
+              />
+            </div>
+          </div>
+          <p className="admin-hint" style={{ marginBottom: 0 }}>
+            Диапазоны дат в данных: start {dateHints.minStart ? dateHints.minStart.slice(0, 10) : "—"} …{" "}
+            {dateHints.maxStart ? dateHints.maxStart.slice(0, 10) : "—"}; finish{" "}
+            {dateHints.minFin ? dateHints.minFin.slice(0, 10) : "—"} …{" "}
+            {dateHints.maxFin ? dateHints.maxFin.slice(0, 10) : "—"}
+          </p>
+          <button
+            type="button"
+            className="admin-btn admin-btn--ghost"
+            style={{ marginTop: "0.75rem" }}
+            onClick={() => setFilters({ ...emptyCompareFilters })}
+          >
+            Сбросить фильтры
+          </button>
+        </div>
+      ) : null}
 
       <div className="admin-card admin-card-pad" style={{ marginBottom: "1rem" }}>
         <h2 style={{ margin: "0 0 0.5rem", fontSize: "1rem" }}>Выбор запусков для сравнения</h2>
@@ -293,7 +335,31 @@ export default function ComparePage() {
         </div>
       </div>
 
+      <div className="admin-card admin-card-pad" style={{ marginBottom: "1rem" }}>
+        <h2 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>Дашборд: A относительно B</h2>
+        <p className="admin-hint" style={{ marginTop: 0 }}>
+          Столбцы: <strong>Успех</strong> и <strong>Ошибки</strong> — значения{" "}
+          <code>total_success</code> / <code>total_failed</code>; <strong>Время, с</strong> — длительность
+          между <code>start_time</code> и <code>finish_time</code> (если нет финиша, в графике 0).
+        </p>
+        {leftRow && rightRow ? (
+          <CompareDashboardChart
+            legendA={`Запуск A (${leftRow.benchId})`}
+            legendB={`Запуск B (${rightRow.benchId})`}
+            successA={leftRow.totalSuccess}
+            successB={rightRow.totalSuccess}
+            failedA={leftRow.totalFailed}
+            failedB={rightRow.totalFailed}
+            durationSecA={durA}
+            durationSecB={durB}
+          />
+        ) : (
+          <p className="admin-hint">Выберите два запуска для графика.</p>
+        )}
+      </div>
+
       <div className="admin-card">
+        <h2 className="visually-hidden">Таблица сравнения</h2>
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>

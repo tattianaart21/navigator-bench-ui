@@ -30,3 +30,10 @@ export function durationSince(start: string | null): string {
   const s = sec % 60;
   return `${m} мин ${s} с`;
 }
+
+/** Длительность выполнения в секундах (для графиков). */
+export function durationSeconds(start: string | null, end: string | null): number | null {
+  if (!start || !end) return null;
+  const sec = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1000);
+  return Number.isFinite(sec) && sec >= 0 ? sec : null;
+}

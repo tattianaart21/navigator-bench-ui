@@ -671,3 +671,74 @@ button {
   font-size: 0.72rem;
   word-break: break-all;
 }
+
+.compare-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  color: var(--admin-purple);
+  box-shadow: var(--admin-shadow);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.admin-icon-btn:hover {
+  border-color: var(--admin-purple);
+  background: #faf8ff;
+}
+
+.admin-icon-btn--active {
+  border-color: var(--admin-purple);
+  background: #ede9fe;
+  color: var(--admin-purple);
+}
+
+.admin-icon-btn--dot::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7c3aed;
+  border: 2px solid #fff;
+}
+
+.compare-filters-panel {
+  margin-bottom: 1rem;
+}
+
+.compare-chart-wrap {
+  width: 100%;
+  min-height: 300px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
