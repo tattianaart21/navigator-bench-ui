@@ -893,3 +893,59 @@ button {
   background: #4a3a6e;
   border-color: #7c3aed;
 }
+
+.admin-row--muted td {
+  opacity: 0.65;
+}
+
+.cell-ellipsis {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--admin-border);
+  padding-bottom: 0.5rem;
+}
+
+.admin-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-muted);
+}
+
+.admin-tab-btn--active {
+  background: var(--admin-purple);
+  color: #fff;
+}
+
+.admin-json-editor {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  width: 100%;
+  resize: vertical;
+}
+
+.admin-version-pill--current {
+  box-shadow: inset 0 0 0 2px rgba(45, 27, 78, 0.25);
+}
+
+.admin-banner--warn {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.admin-error-text {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}

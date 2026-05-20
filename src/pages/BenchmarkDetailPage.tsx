@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useBenchmarks } from "../context/BenchmarkContext";
+import { useConfigs } from "../context/ConfigContext";
 import { useRuns } from "../context/RunsContext";
 import Modal from "../components/Modal";
 import Switch from "../components/Switch";
@@ -21,6 +22,7 @@ export default function BenchmarkDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getBenchmark, benchmarks, commitBenchTasks } = useBenchmarks();
+  const { configs } = useConfigs();
   const { addRun } = useRuns();
   const bench = id ? getBenchmark(id) : undefined;
 
@@ -99,7 +101,7 @@ export default function BenchmarkDetailPage() {
   if (!bench || !latest || !viewing) {
     return (
       <p>
-        Бенчмарк не найден. <Link to="/">На главную</Link>
+        ??????????? ?? ??????. <Link to="/">?? ?????????</Link>
       </p>
     );
   }
@@ -192,7 +194,7 @@ export default function BenchmarkDetailPage() {
 
   const versionChain = bench!.versions.map((v, idx) => (
     <span key={v.id} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      {idx > 0 ? <span className="admin-version-arrow">→</span> : null}
+      {idx > 0 ? <span className="admin-version-arrow">???</span> : null}
       <button
         type="button"
         className={
@@ -209,16 +211,16 @@ export default function BenchmarkDetailPage() {
   ));
 
   const benchSaveTitle =
-    benchSaveMode === "newVersion" ? "Новая версия бенчмарка" : "Сохранение бенчмарка";
+    benchSaveMode === "newVersion" ? "????? ??????? ???????????" : "???????????? ???????????";
   const benchSaveMessage =
     benchSaveMode === "newVersion"
-      ? "Внесённые изменения будут сохранены как новая версия бенчмарка. Продолжить?"
-      : "Сохранить все изменения тасок в текущей версии?";
+      ? "???????????? ????????? ???????? ???????????? ??? ????? ??????? ???????????. ???????????????"
+      : "????????????? ??? ????????? ?????? ? ?????????? ????????";
 
   return (
     <>
       <div className="admin-breadcrumb">
-        <Link to="/">Бенчмарки</Link>
+        <Link to="/">????????????</Link>
         {" / "}
         <strong>{bench!.name}</strong>
       </div>
@@ -228,15 +230,15 @@ export default function BenchmarkDetailPage() {
       <div className="admin-card admin-card-pad" style={{ marginBottom: "1rem" }}>
         <dl className="admin-meta-grid">
           <div>
-            <dt>Текущая версия</dt>
+            <dt>????????? ???????</dt>
             <dd>{latest.label}</dd>
           </div>
           <div>
-            <dt>Количество тасок (в просмотре)</dt>
+            <dt>????????????? ?????? (? ????????????)</dt>
             <dd>{viewing.tasks.length}</dd>
           </div>
           <div>
-            <dt>Дата и время версии</dt>
+            <dt>?????? ? ?????? ???????</dt>
             <dd>{formatIso(viewing.createdAt)}</dd>
           </div>
         </dl>
@@ -245,7 +247,7 @@ export default function BenchmarkDetailPage() {
       <div className="admin-version-chain">{versionChain}</div>
       {readOnly ? (
         <p className="admin-hint">
-          Просмотр версии <strong>{viewing.label}</strong> (только чтение).
+          ???????????? ??????? <strong>{viewing.label}</strong> (???????? ????????).
         </p>
       ) : null}
 
@@ -253,7 +255,7 @@ export default function BenchmarkDetailPage() {
         <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
           <Switch
             id="archived"
-            label="Показывать архивные таски"
+            label="?????????????? ??????????? ??????"
             checked={includeArchived}
             onChange={(v) => {
               setIncludeArchived(v);
@@ -271,10 +273,10 @@ export default function BenchmarkDetailPage() {
                 disabled={!dirty}
                 onClick={requestBenchSave}
               >
-                Сохранить бенчмарк
+                ????????????? ??????????
               </button>
               <button type="button" className="admin-btn admin-btn--primary" onClick={openAdd}>
-                Добавить задачу
+                ??????????? ????????
               </button>
               <button
                 type="button"
@@ -284,7 +286,7 @@ export default function BenchmarkDetailPage() {
                   setRunOpen(true);
                 }}
               >
-                Запуск всего бенча
+                ???????? ????? ??????
               </button>
               <button
                 type="button"
@@ -295,7 +297,7 @@ export default function BenchmarkDetailPage() {
                   setRunOpen(true);
                 }}
               >
-                Запуск выбранных ({selected.size})
+                ???????? ????????????? ({selected.size})
               </button>
             </>
           ) : null}
@@ -312,7 +314,7 @@ export default function BenchmarkDetailPage() {
                 <th>task_id</th>
                 <th>task_ques</th>
                 <th>task_web</th>
-                {!readOnly ? <th>Действия</th> : null}
+                {!readOnly ? <th>??????????</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -325,7 +327,7 @@ export default function BenchmarkDetailPage() {
                         checked={selected.has(t.internalId)}
                         onChange={() => toggleSelect(t.internalId)}
                         disabled={t.archived}
-                        aria-label="Выбрать для запуска"
+                        aria-label="???????????? ??? ????????"
                       />
                     </td>
                   ) : null}
@@ -336,8 +338,8 @@ export default function BenchmarkDetailPage() {
                   <td className="cell-wrap" title={t.task_ques}>
                     {t.task_ques}
                   </td>
-                  <td className="cell-mono" title={t.task_web || "—"}>
-                    {t.task_web || "—"}
+                  <td className="cell-mono" title={t.task_web || "???"}>
+                    {t.task_web || "???"}
                   </td>
                   {!readOnly ? (
                     <td style={{ whiteSpace: "nowrap" }}>
@@ -346,7 +348,7 @@ export default function BenchmarkDetailPage() {
                         className="admin-btn admin-btn--sm"
                         onClick={() => openEdit(t)}
                       >
-                        Изменить
+                        ???????????
                       </button>{" "}
                       {!t.archived ? (
                         <button
@@ -354,7 +356,7 @@ export default function BenchmarkDetailPage() {
                           className="admin-btn admin-btn--sm admin-btn--danger"
                           onClick={() => archive(t)}
                         >
-                          В архив
+                          ?? ???????
                         </button>
                       ) : (
                         <button
@@ -362,7 +364,7 @@ export default function BenchmarkDetailPage() {
                           className="admin-btn admin-btn--sm"
                           onClick={() => restore(t)}
                         >
-                          Восстановить
+                          ????????????????
                         </button>
                       )}
                     </td>
@@ -387,23 +389,23 @@ export default function BenchmarkDetailPage() {
       </div>
 
       <Modal
-        title="Новая задача"
+        title="????? ???????"
         open={addOpen}
         onClose={() => setAddOpen(false)}
         footer={
           <>
             <button type="button" className="admin-btn admin-btn--ghost" onClick={() => setAddOpen(false)}>
-              Отмена
+              ????????
             </button>
             <button type="button" className="admin-btn admin-btn--primary" onClick={runAddSave}>
-              Сохранить
+              ?????????????
             </button>
           </>
         }
       >
         <p className="admin-hint">
-          Поле <strong>task_id</strong> формируется автоматически по <code>web_name</code>. Чтобы
-          зафиксировать изменения в бенчмарке для других пользователей, нажмите «Сохранить бенчмарк».
+          ????? <strong>task_id</strong> ???????????????? ???????????????? ?? <code>web_name</code>. ???????
+          ????????????????? ????????? ? ??????????? ??? ????????? ???????????????, ???????? ?????????????? ???????????.
         </p>
         <div className="admin-field">
           <label htmlFor="add-web">web_name</label>
@@ -431,28 +433,28 @@ export default function BenchmarkDetailPage() {
             className="admin-input"
             value={formUrl}
             onChange={(e) => setFormUrl(e.target.value)}
-            placeholder="https://…"
+            placeholder="https://???"
           />
         </div>
       </Modal>
 
       <Modal
-        title="Изменить задачу"
+        title="??????????? ????????"
         open={editOpen}
         onClose={() => setEditOpen(false)}
         footer={
           <>
             <button type="button" className="admin-btn admin-btn--ghost" onClick={() => setEditOpen(false)}>
-              Отмена
+              ????????
             </button>
             <button type="button" className="admin-btn admin-btn--primary" onClick={runEditSave}>
-              Сохранить
+              ?????????????
             </button>
           </>
         }
       >
         <p className="admin-hint" style={{ marginTop: 0 }}>
-          Изменения попадут в черновик карточки. Итоговая запись в бенчмарк — кнопка «Сохранить бенчмарк».
+          ?????????? ????????? ? ?????????? ???????????. ?????????? ??????? ? ?????????? ??? ?????? ?????????????? ???????????.
         </p>
         <div className="admin-field">
           <label htmlFor="edit-web">web_name</label>
@@ -495,12 +497,13 @@ export default function BenchmarkDetailPage() {
         open={runOpen}
         onClose={() => setRunOpen(false)}
         benchmarks={benchmarks}
+        configs={configs}
         defaultBenchmarkId={bench!.id}
         lockedBenchmarkId={bench!.id}
         selectedTaskIds={
           runScope === "selected" && selected.size ? Array.from(selected) : null
         }
-        title={runScope === "selected" ? "Запуск выбранных тасок" : "Запуск бенчмарка"}
+        title={runScope === "selected" ? "?????? ????????? ?????" : "?????? ?????????"}
         onSubmit={launchHandler}
       />
     </>

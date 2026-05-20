@@ -4,6 +4,7 @@ type Props = {
   open: boolean;
   title?: string;
   message: string;
+  title?: string;
   confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -13,6 +14,7 @@ export default function ConfirmNewVersionModal({
   open,
   title = "Новая версия бенчмарка",
   message,
+  title = "Новая версия бенчмарка",
   confirmLabel = "Продолжить",
   onConfirm,
   onCancel,

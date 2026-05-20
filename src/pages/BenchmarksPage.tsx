@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useBenchmarks } from "../context/BenchmarkContext";
+import { useConfigs } from "../context/ConfigContext";
 import { useRuns } from "../context/RunsContext";
 import Modal from "../components/Modal";
 import RunLaunchModal, { type RunLaunchSubmitPayload } from "../components/RunLaunchModal";
@@ -8,6 +9,7 @@ import { formatIso } from "../lib/format";
 
 export default function BenchmarksPage() {
   const { benchmarks, createBenchmark } = useBenchmarks();
+  const { configs } = useConfigs();
   const { addRun } = useRuns();
   const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
@@ -151,12 +153,14 @@ export default function BenchmarksPage() {
           setDefaultBench(null);
         }}
         benchmarks={benchmarks}
+        configs={configs}
         defaultBenchmarkId={defaultBench}
         onSubmit={handleLaunch}
       />
 
       <p className="admin-hint" style={{ marginTop: "1.25rem" }}>
-        <Link to="/runs">Запуски</Link> · <Link to="/compare">Сравнение</Link>
+        <Link to="/configs">Конфиги</Link> · <Link to="/runs">Запуски</Link> ·{" "}
+        <Link to="/compare">Сравнение</Link>
       </p>
     </>
   );

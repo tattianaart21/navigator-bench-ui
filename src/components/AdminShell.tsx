@@ -6,6 +6,7 @@ const tabs = [
   { to: "#", label: "Промпты", disabled: true },
   { to: "#", label: "Трейсы", disabled: true },
   { to: "/", label: "Бенчмарки", end: true },
+  { to: "/configs", label: "Конфиги", end: true },
 ];
 
 export default function AdminShell() {

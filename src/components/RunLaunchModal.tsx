@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { getActiveConfigVersion } from "../context/ConfigContext";
 import Modal from "./Modal";
 import {
   SAMPLE_WEB_BROWSER_EXTENSION_DIR,
@@ -6,6 +7,7 @@ import {
   SAMPLE_WEB_BROWSER_USER_DIR,
 } from "../data/sampleRunExamples";
 import type { BenchmarkData, BenchmarkRunLaunchDefaults } from "../types/benchmark";
+import type { ConfigData, ConfigPayload } from "../types/config";
 
 export type RunLaunchForm = {
   web_browser_path: string;
@@ -73,16 +75,42 @@ function mergeLaunchForm(base: RunLaunchForm, d?: BenchmarkRunLaunchDefaults | n
 
 export type RunLaunchSubmitPayload = RunLaunchForm & {
   benchmarkId: string;
+  configId: string;
+  configVersionId: string;
   selectedTaskInternalIds: string[] | null;
 };
+
+function applyConfigPayload(base: RunLaunchForm, p: ConfigPayload): RunLaunchForm {
+  return {
+    ...base,
+    pipeline: p.pipeline,
+    max_steps: p.max_steps,
+    max_concurrent: p.max_concurrent,
+    planner_model: p.planner_model,
+    planner_version: p.planner_version,
+    navigator_model: p.navigator_model,
+    navigator_version: p.navigator_version,
+    judge_name: p.judge_name,
+    web_browser_path: p.web_browser_path,
+    web_browser_extension_dir: p.web_browser_extension_dir,
+    web_browser_user_dir: p.web_browser_user_dir,
+    result_dir: p.result_dir,
+    bench_test_path: p.bench_test_path,
+    gigado_backend_url: p.gigado_backend_url,
+    save_screenshots: p.save_screenshots,
+    screenshots_without_markup: p.screenshots_without_markup,
+  };
+}
 
 type Props = {
   open: boolean;
   onClose: () => void;
   benchmarks: BenchmarkData[];
+  configs: ConfigData[];
   defaultBenchmarkId: string | null;
+  defaultConfigId?: string | null;
   title?: string;
-  /** если передан — в модалке не показываем выбор бенча */
+  /** ╨╡╤Б╨╗╨╕ ╨┐╨╡╤А╨╡╨┤╨░╨╜ тАФ ╨▓ ╨╝╨╛╨┤╨░╨╗╨║╨╡ ╨╜╨╡ ╨┐╨╛╨║╨░╨╖╤Л╨▓╨░╨╡╨╝ ╨▓╤Л╨▒╨╛╤А ╨▒╨╡╨╜╤З╨░ */
   lockedBenchmarkId?: string | null;
   selectedTaskIds?: string[] | null;
   onSubmit: (payload: RunLaunchSubmitPayload) => void;
@@ -92,40 +120,59 @@ export default function RunLaunchModal({
   open,
   onClose,
   benchmarks,
+  configs,
   defaultBenchmarkId,
+  defaultConfigId,
   title = "Запуск бенчмарка",
   lockedBenchmarkId,
   selectedTaskIds,
   onSubmit,
 }: Props) {
+  const activeConfigs = useMemo(() => configs.filter((c) => !c.deleted), [configs]);
   const [benchId, setBenchId] = useState<string>(defaultBenchmarkId ?? benchmarks[0]?.id ?? "");
+  const [configId, setConfigId] = useState<string>(
+    defaultConfigId ?? activeConfigs[0]?.id ?? ""
+  );
   const [form, setForm] = useState<RunLaunchForm>(initialForm);
 
   const effectiveBenchId = lockedBenchmarkId ?? benchId;
+  const selectedConfig = activeConfigs.find((c) => c.id === configId);
+  const selectedConfigVersion = selectedConfig ? getActiveConfigVersion(selectedConfig) : undefined;
 
   useEffect(() => {
     if (!open) return;
     const id = lockedBenchmarkId ?? defaultBenchmarkId ?? benchmarks[0]?.id ?? "";
+    const cfgId = defaultConfigId ?? activeConfigs[0]?.id ?? "";
     setBenchId(id);
+    setConfigId(cfgId);
     const b = benchmarks.find((x) => x.id === id);
-    setForm(
-      mergeLaunchForm(
-        { ...initialForm, created_at: new Date().toISOString() },
-        b?.runLaunchDefaults ?? null
-      )
+    let next = mergeLaunchForm(
+      { ...initialForm, created_at: new Date().toISOString() },
+      b?.runLaunchDefaults ?? null
     );
-  }, [open, defaultBenchmarkId, benchmarks, lockedBenchmarkId]);
+    const cfg = activeConfigs.find((c) => c.id === cfgId);
+    const ver = cfg ? getActiveConfigVersion(cfg) : undefined;
+    if (ver) next = applyConfigPayload(next, ver.payload);
+    setForm(next);
+  }, [open, defaultBenchmarkId, defaultConfigId, benchmarks, lockedBenchmarkId, activeConfigs]);
 
   useEffect(() => {
     if (!open || lockedBenchmarkId) return;
     const b = benchmarks.find((x) => x.id === effectiveBenchId);
-    setForm((prev) =>
-      mergeLaunchForm(
+    setForm((prev) => {
+      let next = mergeLaunchForm(
         { ...initialForm, created_at: prev.created_at },
         b?.runLaunchDefaults ?? null
-      )
-    );
-  }, [effectiveBenchId, benchmarks, open, lockedBenchmarkId]);
+      );
+      if (selectedConfigVersion) next = applyConfigPayload(next, selectedConfigVersion.payload);
+      return next;
+    });
+  }, [effectiveBenchId, benchmarks, open, lockedBenchmarkId, selectedConfigVersion?.id]);
+
+  useEffect(() => {
+    if (!open || !selectedConfigVersion) return;
+    setForm((prev) => applyConfigPayload(prev, selectedConfigVersion.payload));
+  }, [open, selectedConfigVersion?.id]);
 
   const benchOptions = useMemo(
     () =>
@@ -136,6 +183,15 @@ export default function RunLaunchModal({
     [benchmarks]
   );
 
+  const configOptions = useMemo(
+    () =>
+      activeConfigs.map((c) => {
+        const v = getActiveConfigVersion(c);
+        return { id: c.id, label: `${c.name} (${v.label})` };
+      }),
+    [activeConfigs]
+  );
+
   const field = (key: keyof RunLaunchForm, label: string, el: React.ReactNode) => (
     <div className="admin-field" key={String(key)}>
       <label htmlFor={`run-${String(key)}`}>{label}</label>
@@ -144,9 +200,12 @@ export default function RunLaunchModal({
   );
 
   const submit = () => {
+    if (!selectedConfigVersion) return;
     onSubmit({
       ...form,
       benchmarkId: effectiveBenchId,
+      configId,
+      configVersionId: selectedConfigVersion.id,
       selectedTaskInternalIds: selectedTaskIds && selectedTaskIds.length ? selectedTaskIds : null,
     });
     onClose();
@@ -161,14 +220,35 @@ export default function RunLaunchModal({
       footer={
         <>
           <button type="button" className="admin-btn admin-btn--ghost" onClick={onClose}>
-            Отмена
+            ╨Ю╤В╨╝╨╡╨╜╨░
           </button>
-          <button type="button" className="admin-btn admin-btn--primary" onClick={submit}>
+          <button
+            type="button"
+            className="admin-btn admin-btn--primary"
+            onClick={submit}
+            disabled={!selectedConfigVersion}
+          >
             Запустить
           </button>
         </>
       }
     >
+      <div className="admin-field">
+        <label htmlFor="run-config">Конфиг запуска</label>
+        <select
+          id="run-config"
+          className="admin-input"
+          value={configId}
+          onChange={(e) => setConfigId(e.target.value)}
+        >
+          {configOptions.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {!lockedBenchmarkId ? (
         <div className="admin-field">
           <label htmlFor="run-bench">Бенчмарк</label>
@@ -189,10 +269,10 @@ export default function RunLaunchModal({
 
       {selectedTaskIds && selectedTaskIds.length > 0 ? (
         <p className="admin-hint">
-          Будут запущены выбранные таски: <strong>{selectedTaskIds.length}</strong>
+          ╨С╤Г╨┤╤Г╤В ╨╖╨░╨┐╤Г╤Й╨╡╨╜╤Л ╨▓╤Л╨▒╤А╨░╨╜╨╜╤Л╨╡ ╤В╨░╤Б╨║╨╕: <strong>{selectedTaskIds.length}</strong>
         </p>
       ) : (
-        <p className="admin-hint">Запуск всего бенчмарка (все активные таски текущей версии).</p>
+        <p className="admin-hint">╨Ч╨░╨┐╤Г╤Б╨║ ╨▓╤Б╨╡╨│╨╛ ╨▒╨╡╨╜╤З╨╝╨░╤А╨║╨░ (╨▓╤Б╨╡ ╨░╨║╤В╨╕╨▓╨╜╤Л╨╡ ╤В╨░╤Б╨║╨╕ ╤В╨╡╨║╤Г╤Й╨╡╨╣ ╨▓╨╡╤А╤Б╨╕╨╕).</p>
       )}
 
       <div className="admin-form-grid">
@@ -422,7 +502,7 @@ export default function RunLaunchModal({
             className={"admin-toggle" + (form.save_screenshots ? " admin-toggle--on" : "")}
             onClick={() => setForm((f) => ({ ...f, save_screenshots: !f.save_screenshots }))}
           >
-            {form.save_screenshots ? "да" : "нет"}
+            {form.save_screenshots ? "╨┤╨░" : "╨╜╨╡╤В"}
           </button>
         </div>
         <div className="admin-field admin-field--switch">
@@ -434,7 +514,7 @@ export default function RunLaunchModal({
               setForm((f) => ({ ...f, screenshots_without_markup: !f.screenshots_without_markup }))
             }
           >
-            {form.screenshots_without_markup ? "да" : "нет"}
+            {form.screenshots_without_markup ? "╨┤╨░" : "╨╜╨╡╤В"}
           </button>
         </div>
       </div>
